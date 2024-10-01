@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Step Sequencer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .controls button, .controls input, .controls select {
+            font-size: 18px;
+            padding: 10px 20px;
+        }
+
+        .sequencer {
+            display: grid;
+            gap: 10px;
+        }
+
+        .lane {
+            display: flex;
+            align-items: center;
+        }
+
+        .lane-controls {
+            width: 300px;
+            display: flex;
+            justify-content: space-between;
+            margin-right: 10px;
+        }
+
+        .lane-controls select {
+            width: 45%;
+        }
+
+        .steps {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        .step {
+            flex-grow: 1;
+            height: 50px;
+            border: 2px solid #ddd;
+            margin: 0 5px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .step.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .step.current {
+            border-color: #f44336;
+        }
+
+        .scenes {
+            margin-top: 20px;
+        }
+
+        .scene {
+            display: inline-block;
+            margin: 5px;
+            padding: 10px 20px;
+            background-color: #ddd;
+            cursor: pointer;
+        }
+
+        .scene.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Custom Step Sequencer</h1>
+    <div class="controls">
+        <button id="playPause">Play</button>
+        <button id="record">Record</button>
+        <label for="bpm">BPM:</label>
+        <input type="number" id="bpm" value="120" min="1" max="300">
+    </div>
+    <div id="sequencer" class="sequencer"></div>
+    <div class="scenes" id="scenes"></div>
+</div>
+
+<script>
+    const NUM_STEPS = 4 * 4 * 2;
+    const NUM_SCENES = 4;
+    let currentStep = 0;
+    let isPlaying = false;
+    let isRecording = false;
+    let currentScene = 0;
+    let midiAccess = null;
+    let midiInputs = [];
+    let midiOutputs = [];
+    let sequences = [];
+
+    // Initialize MIDI
+    navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+
+    function onMIDISuccess(access) {
+        midiAccess = access;
+        midiInputs = Array.from(midiAccess.inputs.values());
+        midiOutputs = Array.from(midiAccess.outputs.values());
+        setupSequencer();
+    }
+
+    function onMIDIFailure() {
+        console.error('Could not access MIDI devices');
+    }
+
+    function setupSequencer() {
+        const sequencerElement = document.getElementById('sequencer');
+        for (let i = 0; i < 4; i++) { // Create 4 lanes by default
+            const lane = document.createElement('div');
+            lane.className = 'lane';
+            lane.innerHTML = `
+                    <div class="lane-controls">
+                        <select class="input-select" data-lane="${i}">
+                            <option value="">No Input</option>
+                            ${midiInputs.map((input, index) => `<option value="${index}">${input.name}</option>`).join('')}
+                        </select>
+                        <select class="output-select" data-lane="${i}">
+                            <option value="">No Output</option>
+                            ${midiOutputs.map((output, index) => `<option value="${index}">${output.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="steps">
+                        ${Array(NUM_STEPS).fill().map((_, j) => `<div class="step" data-lane="${i}" data-step="${j}"></div>`).join('')}
+                    </div>
+                `;
+            sequencerElement.appendChild(lane);
+
+            // Initialize sequence for this lane
+            sequences[i] = Array(NUM_STEPS).fill(null);
+        }
+
+        // Setup scenes
+        const scenesElement = document.getElementById('scenes');
+        for (let i = 0; i < NUM_SCENES; i++) {
+            const scene = document.createElement('div');
+            scene.className = 'scene';
+            scene.textContent = `Scene ${i + 1}`;
+            scene.onclick = () => switchScene(i);
+            scenesElement.appendChild(scene);
+        }
+
+        // Event listeners
+        document.getElementById('playPause').addEventListener('click', togglePlayback);
+        document.getElementById('record').addEventListener('click', toggleRecord);
+        document.getElementById('bpm').addEventListener('change', updateBPM);
+        document.querySelectorAll('.step').forEach(step => {
+            step.addEventListener('click', toggleStep);
+        });
+        document.querySelectorAll('.input-select').forEach(select => {
+            select.addEventListener('change', updateMidiInput);
+        });
+        document.querySelectorAll('.output-select').forEach(select => {
+            select.addEventListener('change', updateMidiOutput);
+        });
+
+        // Start animation loop
+        requestAnimationFrame(update);
+    }
+
+    function updateMidiInput(event) {
+        const laneIndex = event.target.dataset.lane;
+        const inputIndex = event.target.value;
+        if (inputIndex !== '') {
+            midiInputs[inputIndex].onmidimessage = (message) => handleMidiMessage(message, laneIndex);
+        }
+    }
+
+    function updateMidiOutput(event) {
+        // This function would be used to update the MIDI output for a lane
+        // We don't need to do anything here as we'll use the selected output when playing notes
+    }
+
+    function handleMidiMessage(message, laneIndex) {
+        if (isRecording && isPlaying) {
+            const [status, note, velocity] = message.data;
+            if (status === 144 && velocity > 0) { // Note On
+                sequences[laneIndex][currentStep] = {note, velocity};
+                updateStepUI(laneIndex, currentStep);
+            }
+        }
+    }
+
+    function togglePlayback() {
+        isPlaying = !isPlaying;
+        document.getElementById('playPause').textContent = isPlaying ? 'Pause' : 'Play';
+    }
+
+    function toggleRecord() {
+        isRecording = !isRecording;
+        document.getElementById('record').textContent = isRecording ? 'Stop Recording' : 'Record';
+    }
+
+    function updateBPM() {
+        // BPM logic here (not changed)
+    }
+
+    function toggleStep(event) {
+        const lane = event.target.dataset.lane;
+        const step = event.target.dataset.step;
+        sequences[lane][step] = sequences[lane][step] ? null : {note: 60, velocity: 100};
+        updateStepUI(lane, step);
+    }
+
+    function updateStepUI(lane, step) {
+        const stepElement = document.querySelector(`.step[data-lane="${lane}"][data-step="${step}"]`);
+        const note = sequences[lane][step];
+        if (note) {
+            stepElement.classList.add('active');
+            stepElement.textContent = `${note.note} (${note.velocity})`;
+        } else {
+            stepElement.classList.remove('active');
+            stepElement.textContent = '';
+        }
+    }
+
+    function switchScene(sceneIndex) {
+        currentScene = sceneIndex;
+        document.querySelectorAll('.scene').forEach((scene, index) => {
+            scene.classList.toggle('active', index === currentScene);
+        });
+        // TODO: Load sequence for this scene
+    }
+
+    function update() {
+        if (isPlaying) {
+            const bpm = document.getElementById('bpm').value;
+            const msPerStep = (60000 / bpm) / 4; // Assuming quarter notes
+
+            const currentTime = performance.now();
+            if (currentTime - lastStepTime > msPerStep) {
+                lastStepTime = currentTime;
+                playStep();
+                currentStep = (currentStep + 1) % NUM_STEPS;
+            }
+        }
+
+        updateUI();
+        requestAnimationFrame(update);
+    }
+
+    function playStep() {
+        sequences.forEach((lane, laneIndex) => {
+            const note = lane[currentStep];
+            if (note) {
+                const outputSelect = document.querySelector(`.output-select[data-lane="${laneIndex}"]`);
+                const outputIndex = outputSelect.value;
+                if (outputIndex !== '') {
+                    const output = midiOutputs[outputIndex];
+                    output.send([0x90, note.note, note.velocity]); // Note On
+                    setTimeout(() => {
+                        output.send([0x80, note.note, 0]); // Note Off
+                    }, 100); // Note duration
+                }
+            }
+        });
+    }
+
+    function updateUI() {
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.toggle('current', parseInt(step.dataset.step) === currentStep);
+        });
+    }
+
+    let lastStepTime = performance.now();
+</script>
+</body>
+</html>
