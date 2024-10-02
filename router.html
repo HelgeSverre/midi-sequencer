@@ -1,62 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-data="midiRouter()" x-init="init()" :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI Router</title>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
 </head>
-<body class="bg-gray-100 p-8" x-data="midiRouter()" x-init="initializeMIDI()">
-<div class=" mx-auto">
+<body class="bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
+<div class="mx-auto p-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">MIDI Router</h1>
+        <button x-on:click="toggleDarkMode()"
+                class="bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-2 py-2 rounded-md transition-colors duration-200">
+            <span x-text="darkMode ? '🌙' : '☀️'"></span>
+        </button>
+    </div>
 
-    <table class="w-full bg-white  rounded mb-4">
+    <table class="w-full bg-white dark:bg-zinc-800 rounded mb-4">
         <thead>
-        <tr>
-            <th class="border px-4 py-2">MIDI Input</th>
-            <th class="border px-4 py-2">Input Channel</th>
-            <th class="border px-4 py-2">MIDI Output</th>
-            <th class="border px-4 py-2">Output Channel</th>
-            <th class="border px-4 py-2">Actions</th>
+        <tr class="bg-zinc-100 dark:bg-zinc-700">
+            <th class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">MIDI Input</th>
+            <th class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">Input Channel</th>
+            <th class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">MIDI Output</th>
+            <th class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">Output Channel</th>
+            <th class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">Actions</th>
         </tr>
         </thead>
         <tbody>
         <template x-for="(row, index) in rows" :key="index">
-            <tr>
-                <td class="border px-4 py-2">
-                    <select x-model="row.inputId" @change="updateConnection(index)" class="w-full">
+            <tr class="border-b border-zinc-200 dark:border-zinc-700">
+                <td class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
+                    <select x-model="row.inputId" @change="updateConnection(index)"
+                            class="w-full bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-500 rounded px-2 py-1">
                         <option value="">Select input</option>
                         <template x-for="input in inputs" :key="input.id">
                             <option :value="input.id" x-text="input.name"></option>
                         </template>
                     </select>
                 </td>
-                <td class="border px-4 py-2">
-                    <select x-model="row.inputChannel" @change="updateConnection(index)" class="w-full">
+                <td class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
+                    <select x-model="row.inputChannel" @change="updateConnection(index)"
+                            class="w-full bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-500 rounded px-2 py-1">
                         <option value="all">All</option>
                         <template x-for="n in 16" :key="n">
                             <option :value="n" x-text="n"></option>
                         </template>
                     </select>
                 </td>
-                <td class="border px-4 py-2">
-                    <select x-model="row.outputId" @change="updateConnection(index)" class="w-full">
+                <td class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
+                    <select x-model="row.outputId" @change="updateConnection(index)"
+                            class="w-full bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-500 rounded px-2 py-1">
                         <option value="">Select output</option>
                         <template x-for="output in outputs" :key="output.id">
                             <option :value="output.id" x-text="output.name"></option>
                         </template>
                     </select>
                 </td>
-                <td class="border px-4 py-2">
-                    <select x-model="row.outputChannel" @change="updateConnection(index)" class="w-full">
+                <td class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
+                    <select x-model="row.outputChannel" @change="updateConnection(index)"
+                            class="w-full bg-white dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-500 rounded px-2 py-1">
                         <template x-for="n in 16" :key="n">
                             <option :value="n" x-text="n"></option>
                         </template>
                     </select>
                 </td>
-                <td class="border px-4 py-2">
+                <td class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
                     <button @click="removeRow(index)"
-                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
+                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded transition-colors duration-200">
                         Delete
                     </button>
                 </td>
@@ -65,9 +81,9 @@
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="5" class="border px-4 py-2">
+            <td colspan="5" class="border border-zinc-200 dark:border-zinc-600 px-4 py-2">
                 <button @click="addRow()"
-                        class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded">
+                        class="bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 text-white dark:text-zinc-800 font-bold py-2 px-4 rounded transition-colors duration-200">
                     Add Connection
                 </button>
             </td>
@@ -75,7 +91,8 @@
     </table>
     <div class="mb-4">
         <h2 class="text-xl font-semibold mb-2">MIDI Event Log</h2>
-        <div id="logWindow" class="bg-black text-green-400 p-4 h-64 overflow-y-auto font-mono text-sm"></div>
+        <div id="logWindow"
+             class="bg-zinc-900 dark:bg-zinc-800 text-green-400 p-4 h-64 overflow-y-auto font-mono text-sm rounded"></div>
     </div>
 </div>
 
@@ -87,14 +104,26 @@
             outputs: [],
             rows: [],
             connections: [],
+            darkMode: false,
+
+            async init() {
+                this.loadDarkModePreference();
+                await this.initializeMIDI();
+                this.loadConnections();
+            },
 
             async initializeMIDI() {
                 try {
                     this.midiAccess = await navigator.requestMIDIAccess();
                     this.updateDeviceLists();
-                    this.midiAccess.onstatechange = () => this.updateDeviceLists();
+                    this.midiAccess.onstatechange = () => {
+                        this.updateDeviceLists();
+                        this.updateConnections();
+                    };
                     this.setupGlobalMIDIListeners();
-                    this.addRow();
+                    if (this.rows.length === 0) {
+                        this.addRow();
+                    }
                 } catch (error) {
                     console.error("MIDI access denied:", error);
                 }
@@ -112,11 +141,13 @@
                     inputChannel: 'all',
                     outputChannel: 1
                 });
+                this.saveConnections();
             },
 
             removeRow(index) {
                 this.disconnectMIDIPort(this.rows[index].inputId, this.rows[index].outputId);
                 this.rows.splice(index, 1);
+                this.saveConnections();
             },
 
             updateConnection(index) {
@@ -125,6 +156,7 @@
                 if (row.inputId && row.outputId) {
                     this.connectMIDIPorts(row.inputId, row.outputId, row.inputChannel, row.outputChannel);
                 }
+                this.saveConnections();
             },
 
             connectMIDIPorts(inputId, outputId, inputChannel, outputChannel) {
@@ -211,6 +243,45 @@
                 logEntry.textContent = message;
                 logWindow.appendChild(logEntry);
                 logWindow.scrollTop = logWindow.scrollHeight;
+            },
+
+            toggleDarkMode() {
+                this.darkMode = !this.darkMode;
+                localStorage.setItem('darkMode', this.darkMode);
+            },
+
+            loadDarkModePreference() {
+                const savedDarkMode = localStorage.getItem('darkMode');
+                if (savedDarkMode !== null) {
+                    this.darkMode = JSON.parse(savedDarkMode);
+                }
+            },
+
+            saveConnections() {
+                const connectionsToSave = this.rows.map(row => ({
+                    inputId: row.inputId,
+                    outputId: row.outputId,
+                    inputChannel: row.inputChannel,
+                    outputChannel: row.outputChannel
+                }));
+                localStorage.setItem('midiConnections', JSON.stringify(connectionsToSave));
+            },
+
+            loadConnections() {
+                const savedConnections = localStorage.getItem('midiConnections');
+                if (savedConnections) {
+                    this.rows = JSON.parse(savedConnections);
+                    this.updateConnections();
+                }
+            },
+
+            updateConnections() {
+                this.connections = [];
+                this.rows.forEach((row, index) => {
+                    if (row.inputId && row.outputId) {
+                        this.connectMIDIPorts(row.inputId, row.outputId, row.inputChannel, row.outputChannel);
+                    }
+                });
             }
         }
     }
