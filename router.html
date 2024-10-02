@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Router</title>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8" x-data="midiRouter()" x-init="initializeMIDI()">
+<div class=" mx-auto">
+
+    <table class="w-full bg-white  rounded mb-4">
+        <thead>
+        <tr>
+            <th class="border px-4 py-2">MIDI Input</th>
+            <th class="border px-4 py-2">Input Channel</th>
+            <th class="border px-4 py-2">MIDI Output</th>
+            <th class="border px-4 py-2">Output Channel</th>
+            <th class="border px-4 py-2">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        <template x-for="(row, index) in rows" :key="index">
+            <tr>
+                <td class="border px-4 py-2">
+                    <select x-model="row.inputId" @change="updateConnection(index)" class="w-full">
+                        <option value="">Select input</option>
+                        <template x-for="input in inputs" :key="input.id">
+                            <option :value="input.id" x-text="input.name"></option>
+                        </template>
+                    </select>
+                </td>
+                <td class="border px-4 py-2">
+                    <select x-model="row.inputChannel" @change="updateConnection(index)" class="w-full">
+                        <option value="all">All</option>
+                        <template x-for="n in 16" :key="n">
+                            <option :value="n" x-text="n"></option>
+                        </template>
+                    </select>
+                </td>
+                <td class="border px-4 py-2">
+                    <select x-model="row.outputId" @change="updateConnection(index)" class="w-full">
+                        <option value="">Select output</option>
+                        <template x-for="output in outputs" :key="output.id">
+                            <option :value="output.id" x-text="output.name"></option>
+                        </template>
+                    </select>
+                </td>
+                <td class="border px-4 py-2">
+                    <select x-model="row.outputChannel" @change="updateConnection(index)" class="w-full">
+                        <template x-for="n in 16" :key="n">
+                            <option :value="n" x-text="n"></option>
+                        </template>
+                    </select>
+                </td>
+                <td class="border px-4 py-2">
+                    <button @click="removeRow(index)"
+                            class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
+                        Delete
+                    </button>
+                </td>
+            </tr>
+        </template>
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="5" class="border px-4 py-2">
+                <button @click="addRow()"
+                        class="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded">
+                    Add Connection
+                </button>
+            </td>
+        </tfoot>
+    </table>
+    <div class="mb-4">
+        <h2 class="text-xl font-semibold mb-2">MIDI Event Log</h2>
+        <div id="logWindow" class="bg-black text-green-400 p-4 h-64 overflow-y-auto font-mono text-sm"></div>
+    </div>
+</div>
+
+<script>
+    function midiRouter() {
+        return {
+            midiAccess: null,
+            inputs: [],
+            outputs: [],
+            rows: [],
+            connections: [],
+
+            async initializeMIDI() {
+                try {
+                    this.midiAccess = await navigator.requestMIDIAccess();
+                    this.updateDeviceLists();
+                    this.midiAccess.onstatechange = () => this.updateDeviceLists();
+                    this.setupGlobalMIDIListeners();
+                    this.addRow();
+                } catch (error) {
+                    console.error("MIDI access denied:", error);
+                }
+            },
+
+            updateDeviceLists() {
+                this.inputs = Array.from(this.midiAccess.inputs.values());
+                this.outputs = Array.from(this.midiAccess.outputs.values());
+            },
+
+            addRow() {
+                this.rows.push({
+                    inputId: '',
+                    outputId: '',
+                    inputChannel: 'all',
+                    outputChannel: 1
+                });
+            },
+
+            removeRow(index) {
+                this.disconnectMIDIPort(this.rows[index].inputId, this.rows[index].outputId);
+                this.rows.splice(index, 1);
+            },
+
+            updateConnection(index) {
+                const row = this.rows[index];
+                this.disconnectMIDIPort(row.inputId, row.outputId);
+                if (row.inputId && row.outputId) {
+                    this.connectMIDIPorts(row.inputId, row.outputId, row.inputChannel, row.outputChannel);
+                }
+            },
+
+            connectMIDIPorts(inputId, outputId, inputChannel, outputChannel) {
+                const input = this.midiAccess.inputs.get(inputId);
+                const output = this.midiAccess.outputs.get(outputId);
+
+                if (input && output) {
+                    const connection = {
+                        input: input,
+                        output: output,
+                        inputChannel: inputChannel,
+                        outputChannel: outputChannel,
+                        onmidimessage: (event) => {
+                            const [status, data1, data2] = event.data;
+                            const channel = status & 0xF;
+                            const messageType = status >> 4;
+
+                            if (inputChannel === 'all' || channel === parseInt(inputChannel) - 1) {
+                                let newStatus = (status & 0xF0) | (parseInt(outputChannel) - 1);
+                                output.send([newStatus, data1, data2]);
+
+                                const decodedMessage = this.decodeMIDIMessage(status, data1, data2);
+                                const logMessage = `Routed: ${input.name} (ch ${channel + 1}) -> ${output.name} (ch ${outputChannel}): ${decodedMessage} | Raw: [${event.data.map(d => d.toString(16).padStart(2, '0')).join(' ')}] -> [${[newStatus, data1, data2].map(d => d.toString(16).padStart(2, '0')).join(' ')}]`;
+
+                                console.log(logMessage);
+                                this.logToWindow(logMessage);
+                            }
+                        }
+                    };
+
+                    input.addEventListener('midimessage', connection.onmidimessage);
+                    this.connections.push(connection);
+                }
+            },
+
+            disconnectMIDIPort(inputId, outputId) {
+                const connectionIndex = this.connections.findIndex(conn => conn.input.id === inputId && conn.output.id === outputId);
+                if (connectionIndex !== -1) {
+                    const connection = this.connections[connectionIndex];
+                    connection.input.removeEventListener('midimessage', connection.onmidimessage);
+                    this.connections.splice(connectionIndex, 1);
+                }
+            },
+
+            setupGlobalMIDIListeners() {
+                this.midiAccess.inputs.forEach(input => {
+                    input.addEventListener('midimessage', (event) => {
+                        const [status, data1, data2] = event.data;
+                        const decodedMessage = this.decodeMIDIMessage(status, data1, data2);
+                        const logMessage = `${input.name}: ${decodedMessage} \t|\t Raw: [${event.data.map(d => d.toString(16).padStart(2, '0')).join(' ')}]`;
+                        console.log(logMessage);
+                        this.logToWindow(logMessage);
+                    });
+                });
+            },
+
+            decodeMIDIMessage(status, data1, data2) {
+                const channel = (status & 0xF) + 1;
+                const messageType = status >> 4;
+
+                switch (messageType) {
+                    case 0x8:
+                        return `Ch: ${channel} - Note Off: Note ${data1}, Velocity ${data2}`;
+                    case 0x9:
+                        return `Ch: ${channel} - Note On: Note ${data1}, Velocity ${data2}`;
+                    case 0xA:
+                        return `Ch: ${channel} - Polyphonic Aftertouch: Note ${data1}, Pressure ${data2}`;
+                    case 0xB:
+                        return `Ch: ${channel} - Control Change: Controller ${data1}, Value ${data2}`;
+                    case 0xC:
+                        return `Ch: ${channel} - Program Change: Program ${data1}`;
+                    case 0xD:
+                        return `Ch: ${channel} - Channel Aftertouch: Pressure ${data1}`;
+                    case 0xE:
+                        return `Ch: ${channel} - Pitch Bend: Value ${(data2 << 7) + data1}`;
+                    default:
+                        return `Unknown: Status ${status.toString(16)}, Data [${data1}, ${data2}]`;
+                }
+            },
+
+            logToWindow(message) {
+                const logWindow = document.getElementById('logWindow');
+                const logEntry = document.createElement('div');
+                logEntry.textContent = message;
+                logWindow.appendChild(logEntry);
+                logWindow.scrollTop = logWindow.scrollHeight;
+            }
+        }
+    }
+</script>
+</body>
+</html>
