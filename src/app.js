@@ -14,6 +14,8 @@ export default () => {
       {
         midiChannel: 1,
         steps: Array(16).fill(null),
+        isMuted: false,
+        isSolo: false,
       },
     ],
     lastStepTime: performance.now(),
@@ -101,6 +103,27 @@ export default () => {
     },
     chordEditorNotesOctaveUp() {
       this.chordEditorNotes = this.chordEditorNotes.map((note) => note + 12);
+    },
+
+    toggleMute(laneIndex) {
+      this.sequences[laneIndex].isMuted = !this.sequences[laneIndex].isMuted;
+      if (this.sequences[laneIndex].isMuted) {
+        this.sequences[laneIndex].isSolo = false;
+      }
+    },
+
+    toggleSolo(laneIndex) {
+      this.sequences[laneIndex].isSolo = !this.sequences[laneIndex].isSolo;
+      if (this.sequences[laneIndex].isSolo) {
+        this.sequences[laneIndex].isMuted = false;
+      }
+    },
+
+    isLaneActive(laneIndex) {
+      const soloActive = this.sequences.some((lane) => lane.isSolo);
+      return (
+        !this.sequences[laneIndex].isMuted && (!soloActive || this.sequences[laneIndex].isSolo)
+      );
     },
 
     reset() {
@@ -278,9 +301,12 @@ export default () => {
     playStep() {
       const currentTime = performance.now();
       this.sequences.forEach((lane, laneIndex) => {
-        const step = lane.steps[this.currentStep];
-        if (step && step.notes.length > 0) {
-          this.sendMidiNotes(laneIndex, step.notes, step.velocity, step.duration, currentTime);
+        if (this.isLaneActive(laneIndex)) {
+          const step = lane.steps[this.currentStep];
+
+          if (step && step.notes.length > 0) {
+            this.sendMidiNotes(laneIndex, step.notes, step.velocity, step.duration, currentTime);
+          }
         }
       });
     },

@@ -151,6 +151,15 @@
             </div>
           </div>
 
+          <button
+            x-on:click="toggleMute(laneIndex)"
+            :class="{ 'active': lane.isMuted }"
+            class="h-10  px-1.5 text-center"
+            title="Mute"
+          >
+            M
+          </button>
+
           <div class="steps h-10">
             <template
               x-for="(step, stepIndex) in lane.steps"
@@ -160,7 +169,8 @@
                 class="step h-full text-center"
                 :class="{
                       'active': step !== null,
-                      'current': stepIndex === currentStep
+                      'current': stepIndex === currentStep,
+                      'opacity-25': lane.isMuted
                   }"
                 x-on:click="openChordEditor(laneIndex, stepIndex)"
               >
@@ -311,7 +321,7 @@
           ></button>
         </template>
       </div>
-      <div class="mt-2 mb-4 flex flex-row items-center justify-between">
+      <div class="mb-4 mt-2 flex flex-row items-center justify-between">
         <button x-on:click="chordEditorNotesOctaveDown()">Oct -</button>
         <button x-on:click="chordEditorNotesOctaveUp()">Oct +</button>
       </div>
