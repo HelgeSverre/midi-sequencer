@@ -42,7 +42,7 @@
             <select x-model="midiInputSelections[laneIndex]" @change="updateMidiInput(laneIndex)">
               <option value="">No Input</option>
               <template x-for="(input, index) in midiInputs" :key="index">
-                <option :value="index" x-text="input.name"></option>
+                <option :value="input.id" x-text="input.name"></option>
               </template>
             </select>
             <select x-model="midiOutputSelections[laneIndex]" @change="updateMidiOutput(laneIndex)">
