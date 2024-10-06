@@ -192,7 +192,7 @@ export default () => {
         });
 
         console.log("Persisted data loaded and MIDI devices re-hooked:", {
-          sequences: this.sequences.length,
+          sequences: this.sequences,
           midiInputSelections: this.midiInputSelections,
           midiOutputSelections: this.midiOutputSelections,
           bpm: this.bpm,
@@ -343,7 +343,7 @@ export default () => {
         velocity,
         duration,
         startTime,
-        channel: this.sequences[laneIndex].midiChannel - 1,
+        channel: this.sequences[laneIndex].midiChannel,
       });
 
       const outputId = this.midiOutputSelections[laneIndex];
@@ -361,7 +361,7 @@ export default () => {
 
       const output = this.midiOutputs.find((output) => output.id === outputId);
       if (output) {
-        const channel = this.sequences[laneIndex].midiChannel - 1;
+        const channel = this.sequences[laneIndex].midiChannel;
         for (const note of notes) {
           // Send note on and note off messages
           output.send([0x90 + channel, note, Math.round(velocity * 127)], startTime);
@@ -393,7 +393,7 @@ export default () => {
 
     handleNoteOn(laneIndex, note, velocity, channel) {
       // Only process if the channel matches the lane's MIDI channel
-      if (channel !== this.sequences[laneIndex].midiChannel - 1) {
+      if (channel !== this.sequences[laneIndex].midiChannel) {
         return;
       }
 
@@ -428,7 +428,7 @@ export default () => {
 
     handleNoteOff(laneIndex, note, channel) {
       // Only process if the channel matches the lane's MIDI channel
-      if (channel !== this.sequences[laneIndex].midiChannel - 1) {
+      if (channel !== this.sequences[laneIndex].midiChannel) {
         return;
       }
 
@@ -511,7 +511,7 @@ export default () => {
           // Regular MIDI output
           const output = this.midiOutputs.find((output) => output.id === outputId);
           if (output) {
-            const channel = lane.midiChannel - 1;
+            const channel = lane.midiChannel;
             for (let note = 0; note < 128; note++) {
               output.send([0x80 + channel, note, 0]); // Note Off
             }

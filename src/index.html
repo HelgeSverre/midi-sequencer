@@ -262,8 +262,8 @@
               <template x-for="channel in 16" :key="`channel-${laneIndex}-${channel}`">
                 <option
                   :selected="lane.midiChannel === channel"
-                  :value="channel"
-                  x-text="channel"
+                  :value="channel -1"
+                  x-text="`Ch ${channel}`"
                 ></option>
               </template>
             </select>
