@@ -41,6 +41,19 @@ export default () => {
         this.midiAccess = await navigator.requestMIDIAccess();
         this.midiInputs = Array.from(this.midiAccess.inputs.values());
         this.midiOutputs = Array.from(this.midiAccess.outputs.values());
+
+        this.midiInputs.forEach((input) => {
+          this.midiInputSelections.push(input.id);
+          input.onmidimessage = (message) => {
+            console.log(
+              "MIDI message received from input " +
+                input.id +
+                ": " +
+                message.data.map((d) => parseInt(d).toString(16)).join(" "),
+            );
+          };
+        });
+
         this.midiStatus = "MIDI initialized successfully";
       } catch (err) {
         console.error("Could not access MIDI devices:", err);
