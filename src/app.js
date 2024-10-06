@@ -436,10 +436,10 @@ export default () => {
     },
 
     cloneLane(index) {
-      const clonedLane = JSON.parse(JSON.stringify(this.sequences[index]));
-      this.sequences.splice(index + 1, 0, clonedLane);
-      this.midiInputSelections.splice(index + 1, 0, this.midiInputSelections[index]);
-      this.midiOutputSelections.splice(index + 1, 0, this.midiOutputSelections[index]);
+      const newLane = JSON.parse(JSON.stringify(this.sequences[index]));
+      this.sequences.push(newLane);
+      this.midiInputSelections.push(this.midiInputSelections[index]);
+      this.midiOutputSelections.push(this.midiOutputSelections[index]);
     },
 
     removeLane(index) {
@@ -468,8 +468,6 @@ export default () => {
       }
     },
 
-    updateMidiOutput(laneIndex) {},
-    updateMidiChannel(laneIndex) {},
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
         const outputId = this.midiOutputSelections[laneIndex];
