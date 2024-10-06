@@ -10,10 +10,7 @@ Alpine.plugin(focus);
 
 Alpine.data("app", app);
 
-Alpine.magic(
-  "noteFromMidi",
-  () => (midiNumber) => getNoteNameFromMidiNumber(midiNumber),
-);
+Alpine.magic("noteFromMidi", () => (midiNumber) => getNoteNameFromMidiNumber(midiNumber));
 
 window.Alpine = Alpine;
 
