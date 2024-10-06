@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark flex h-full w-full">
+<html lang="en" class="dark h-full w-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -91,6 +91,42 @@
     <main class="sequencer">
       <template x-for="(lane, laneIndex) in sequences" :key="`lane-${laneIndex}`">
         <div class="lane">
+          <div x-data="{ isOpen: false }" class="relative">
+            <button
+              x-on:click="isOpen = !isOpen"
+              class="flex size-8 items-center justify-center rounded px-1 text-center font-mono text-base leading-none"
+              x-bind:class="{
+                        'text-white': lane.color?.text == 'white',
+                        'text-black': lane.color?.text == 'black',
+                        'text-black/70': lane.color && lane.color?.text == null,
+                      }"
+              :style="`background-color: ${lane.color?.value || 'ffffff'}!important`"
+              :aria-expanded="isOpen"
+            >
+              <span class="inline-block" x-text="laneIndex + 1"></span>
+            </button>
+            <div
+              x-show="isOpen"
+              x-on:click.away="isOpen = false"
+              class="absolute left-full top-full z-10 mt-1 w-60 rounded-md border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div class="grid grid-cols-6 gap-1">
+                <template x-for="color in colors">
+                  <button
+                    :style="`background-color: ${color.value}!important;`"
+                    class="block size-8 rounded-sm border border-gray-300 dark:border-gray-600"
+                    x-bind:class="{
+                              'text-white': color.text == 'white',
+                              'text-black': color.text == 'black',
+                            }"
+                    x-on:click="lane.color = color;"
+                    :title="color.label"
+                  ></button>
+                </template>
+              </div>
+            </div>
+          </div>
+
           <div class="lane-controls">
             <select
               x-model="midiInputSelections[laneIndex]"

@@ -3,7 +3,7 @@ import * as Tone from "tone";
 
 const PERSIST_KEY = "sequencer_data";
 
-const synth = new Tone.Synth().toDestination();
+const synth = new Tone.PolySynth().toDestination();
 
 export default () => {
   return {
@@ -11,7 +11,12 @@ export default () => {
     isRecording: false,
     bpm: 120,
     currentStep: 0,
-    sequences: [{ midiChannel: 1, steps: Array(16).fill(null) }],
+    sequences: [
+      {
+        midiChannel: 1,
+        steps: Array(16).fill(null),
+      },
+    ],
     lastStepTime: performance.now(),
     midiAccess: null,
     midiInputs: [],
@@ -29,12 +34,37 @@ export default () => {
       duration: 100,
     },
     noteOnTimes: {}, // To store the start time of each note for duration calculation
+
+    colors: [
+      { label: "White", value: "#ffffff", text: "black" },
+      { label: "Black", value: "#000000", text: "white" },
+      { label: "Gray", value: "#3F3F46", text: "white" },
+      { label: "Red", value: "#fca5a5" },
+      { label: "Orange", value: "#fdba74" },
+      { label: "Amber", value: "#fcd34d" },
+      { label: "Yellow", value: "#fde047" },
+      { label: "Lime", value: "#bef264" },
+      { label: "Green", value: "#86efac" },
+      { label: "Emerald", value: "#6ee7b7" },
+      { label: "Teal", value: "#5eead4" },
+      { label: "Cyan", value: "#67e8f9" },
+      { label: "Sky", value: "#7dd3fc" },
+      { label: "Blue", value: "#93c5fd" },
+      { label: "Indigo", value: "#a5b4fc" },
+      { label: "Violet", value: "#c4b5fd" },
+      { label: "Purple", value: "#d8b4fe" },
+      { label: "Fuchsia", value: "#f0abfc" },
+      { label: "Pink", value: "#f9a8d4" },
+      { label: "Rose", value: "#fda4af" },
+    ],
+
     async init() {
       await this.initMidi();
       this.loadPersistedData();
       this.setupWatchers();
       this.startUpdateLoop();
     },
+
     async initMidi() {
       try {
         this.midiAccess = await navigator.requestMIDIAccess();
@@ -78,7 +108,9 @@ export default () => {
 
     loadPersistedData() {
       try {
-        const loaded = JSON.parse(localStorage.getItem(PERSIST_KEY) || "{}");
+        const loaded = JSON.parse(localStorage.getItem(PERSIST_KEY));
+
+        if (!loaded) return;
 
         // Load sequences
         this.sequences = loaded.sequences || this.sequences;
@@ -247,13 +279,11 @@ export default () => {
       this.sequences.forEach((lane, laneIndex) => {
         const step = lane.steps[this.currentStep];
         if (step && step.notes.length > 0) {
-          step.notes.forEach((note) => {
-            this.sendMidiNote(laneIndex, note, step.velocity, step.duration, currentTime);
-          });
+          this.sendMidiNotes(laneIndex, step.notes, step.velocity, step.duration, currentTime);
         }
       });
     },
-    sendMidiNote(laneIndex, note, velocity, duration, startTime) {
+    sendMidiNotes(laneIndex, notes, velocity, duration, startTime) {
       const outputId = this.midiOutputSelections[laneIndex];
       if (outputId === "" || outputId === null) {
         return;
@@ -261,17 +291,22 @@ export default () => {
 
       if (outputId === "tone") {
         // Tone.js output - no need to send MIDI messages
-        const freq = Tone.Frequency(note, "midi").toFrequency();
+        const freq = Tone.Frequency(notes, "midi").toFrequency();
         synth.triggerAttackRelease(freq, duration / 1000, Tone.now(), velocity);
       } else {
         // Regular MIDI output
+        /**
+         * @type {MIDIOutput} output
+         * */
         const output = this.midiOutputs.find((output) => output.id === outputId);
         if (output) {
           const channel = this.sequences[laneIndex].midiChannel - 1;
-          output.send([0x90 + channel, note, Math.round(velocity * 127)]); // Note On
-          setTimeout(() => {
-            output.send([0x80 + channel, note, 0]); // Note Off
-          }, duration);
+          // Note On
+
+          for (const note of notes) {
+            output.send([0x90 + channel, note, Math.round(velocity * 127)], startTime);
+            output.send([0x80 + channel, note, 0], startTime + duration); // Note Off
+          }
         }
       }
     },
@@ -344,11 +379,14 @@ export default () => {
       this.sequences.forEach((lane) => lane.steps.fill(null));
     },
     updateMidiInput(laneIndex) {
-      const inputIndex = this.midiInputSelections[laneIndex];
-      if (inputIndex !== "" && inputIndex !== null) {
-        this.midiInputs[inputIndex].onmidimessage = (message) => {
-          this.handleMidiMessage(message, laneIndex);
-        };
+      const inputId = this.midiInputSelections[laneIndex];
+      if (inputId === "" || inputId === null) {
+        return;
+      }
+
+      const input = this.midiInputs.find((input) => input.id === inputId);
+      if (input) {
+        input.onmidimessage = (message) => this.handleMidiMessage(message, laneIndex);
       }
     },
     updateMidiOutput(laneIndex) {},
