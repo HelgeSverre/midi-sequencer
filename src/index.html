@@ -260,7 +260,7 @@
             </select>
             <select
               x-model.number="lane.midiChannel"
-              x-on:change="updateMidiChannel(laneIndex, $event.target.value)"
+              x-on:change="updateMidiChannel(laneIndex, parseInt($event.target.value))"
               class="h-10 w-12 appearance-none text-center"
             >
               <template x-for="channel in 16" :key="`channel-${laneIndex}-${channel}`">
