@@ -13,7 +13,7 @@ export default () => {
     currentStep: 0,
     sequences: [
       {
-        midiChannel: 1,
+        midiChannel: 0,
         steps: Array(16).fill(null),
         isMuted: false,
         isSolo: false,
@@ -127,7 +127,7 @@ export default () => {
 
     reset() {
       this.sequences = [
-        { midiChannel: 1, steps: Array(16).fill(null), isMuted: false, isSolo: false },
+        { midiChannel: 0, steps: Array(16).fill(null), isMuted: false, isSolo: false },
       ];
       this.midiInputSelections = [null];
       this.midiOutputSelections = [null];
@@ -523,7 +523,7 @@ export default () => {
           const channel = status & 0xf;
 
           // Process messages for the specified channel or if set to "all"
-          if (sequence.midiChannel === "all" || channel === sequence.midiChannel) {
+          if (channel === sequence.midiChannel) {
             this.handleMidiMessage(message, inputId, laneIndex);
           }
         };
@@ -562,7 +562,7 @@ export default () => {
 
     addLane() {
       this.sequences.push({
-        midiChannel: 1,
+        midiChannel: 0,
         steps: Array(16).fill(null),
       });
       this.midiInputSelections.push("");
