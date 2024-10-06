@@ -171,12 +171,12 @@
                   :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
                 ></div>
 
-                <div class="flex flex-col items-center justify-center">
+                <div class="flex flex-col items-center justify-center" x-show="step !== null">
                   <span
-                    x-text="step.notes.length ? step.notes.map($noteFromMidi).join(', ') : '—'"
+                    x-text="step?.notes.length ? step?.notes.map($noteFromMidi).join(', ') : '—'"
                     class="font-medium text-black"
                   ></span>
-                  <span x-text="`${step.duration}ms`" class="opacity-50"></span>
+                  <span x-text="`${step?.duration}ms`" class="opacity-50"></span>
                 </div>
               </div>
             </template>
