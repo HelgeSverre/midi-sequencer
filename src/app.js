@@ -166,17 +166,9 @@ export default () => {
         this.midiInputSelections = this.midiInputSelections.slice(0, this.sequences.length);
         this.midiOutputSelections = this.midiOutputSelections.slice(0, this.sequences.length);
 
-        // Re-hookup MIDI inputs
-        this.midiInputSelections.forEach((inputId, index) => {
-          if (inputId) {
-            const input = this.midiInputs.find((i) => i.id == inputId);
-            if (input) {
-              input.onmidimessage = (message) => this.handleMidiMessage(message, index);
-            } else {
-              console.warn(`MIDI input ${inputId} not found. Clearing selection.`);
-              this.midiInputSelections[index] = null;
-            }
-          }
+        // Re-hookup MIDI inputs using the new updateMidiInput function
+        this.sequences.forEach((sequence, index) => {
+          this.updateMidiInput(index);
         });
 
         // Validate MIDI outputs
@@ -413,7 +405,7 @@ export default () => {
         const output = this.midiOutputs.find((output) => output.id === outputId);
         if (output) {
           const outputChannel = this.sequences[laneIndex].midiChannel;
-          const newStatus = (status & 0xf0) | (outputChannel - 1);
+          const newStatus = (status & 0xf0) | outputChannel;
           output.send([newStatus, note, velocity]);
 
           console.log(
@@ -531,7 +523,7 @@ export default () => {
           const channel = status & 0xf;
 
           // Process messages for the specified channel or if set to "all"
-          if (sequence.midiChannel === "all" || channel === sequence.midiChannel - 1) {
+          if (sequence.midiChannel === "all" || channel === sequence.midiChannel) {
             this.handleMidiMessage(message, inputId, laneIndex);
           }
         };
