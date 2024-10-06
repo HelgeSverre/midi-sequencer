@@ -23,10 +23,10 @@ sketches, live performance, or as a learning tool for MIDI sequencing concepts.
 
 ```shell
 # Clone the repository
-git clone git@github.com:HelgeSverre/sequencer.git
+git clone git@github.com:HelgeSverre/midi-sequencer.git
 
 # Navigate to the project directory
-cd sequencer
+cd midi-sequencer
 
 # Install dependencies
 yarn install
