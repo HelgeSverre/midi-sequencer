@@ -10,6 +10,23 @@
       rel="stylesheet"
     />
     <script type="module" src="./main.js" defer></script>
+
+    <!-- Icon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/favicon/favicon-48x48.png"
+      sizes="48x48"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/favicon/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="Sequencer" />
+    <link rel="manifest" href="/favicon/site.webmanifest" />
   </head>
   <body x-data="app" class="flex h-full w-full flex-col antialiased">
     <nav class="top-controls">
@@ -109,18 +126,21 @@
           ></button>
         </template>
       </div>
-      <label>
-        Velocity:
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          x-model="editingStep.velocity"
-        />
-      </label>
-      <button x-on:click="saveChord">Save</button>
-      <button x-on:click="closeChordEditor">Cancel</button>
+
+      <div class="flex w-full gap-2">
+        <label class="mr-auto">
+          Velocity:
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            x-model="editingStep.velocity"
+          />
+        </label>
+        <button x-on:click="saveChord">Save</button>
+        <button x-on:click="closeChordEditor">Cancel</button>
+      </div>
     </div>
   </body>
 </html>
