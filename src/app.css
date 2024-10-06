@@ -2,9 +2,11 @@
   --bg-color: #1a1a1a;
   --text-color: #f0f0f0;
   --primary-color: #fd9c21;
+  --primary-color-faded: rgb(253, 156, 33, 0.5);
+  --primary-color-ghost: rgb(253, 156, 33, 0.05);
   --secondary-color: #22f3d3;
   --control-bg: #3a3a3a;
-  --control-bg-alt: rgba(255, 255, 255, 0.3);
+  --control-bg-alt: rgba(255, 255, 255, 0.25);
   --step-border: #4a4a4a;
   --top-controls-bg: #2a2a2a;
   --border-radius: 5px;
@@ -41,7 +43,7 @@ select {
   padding: 5px 12px;
   font-size: 16px;
   cursor: pointer;
-  transition: colors 200ms;
+  transition: background-color 200ms;
   border-radius: var(--border-radius);
 }
 
@@ -49,7 +51,7 @@ input[type="number"]:focus-visible,
 button:focus-visible,
 select:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--secondary-color);
+  box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 .chord-editor button,
@@ -59,24 +61,29 @@ select:focus-visible {
 
 .dropdown {
   background-color: var(--control-bg);
+  box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.5);
   z-index: 900;
 }
 
 .dropdown button,
 .dropdown select,
 .dropdown input[type="number"] {
-  background-color: var(--control-bg);
+  background-color: var(--control-bg-alt);
   border: 1px solid var(--control-bg-alt);
 }
 
 button:hover,
 select:hover {
-  background-color: #505050;
+  background-color: #444444;
 }
 
 button.active {
   background-color: var(--primary-color);
   color: var(--bg-color);
+}
+
+button.active:hover {
+  background-color: var(--primary-color-faded);
 }
 
 input[type="number"] {
@@ -112,7 +119,6 @@ input[type="number"] {
   min-width: 40px;
   border: 2px solid var(--step-border);
   cursor: pointer;
-  transition: colors 200ms;
   border-radius: var(--border-radius);
   position: relative;
   overflow: hidden;
@@ -129,15 +135,20 @@ input[type="number"] {
 }
 
 .step.current {
-  background-color: rgba(34, 243, 211, 0.05);
-  border-color: var(--secondary-color);
-  box-shadow: 0 0 2px rgba(34, 243, 211, 0.5);
+  background-color: var(--primary-color-ghost);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 2px var(--primary-color-faded);
 }
 
 .step.active {
   background-color: var(--primary-color);
   color: var(--bg-color);
-  box-shadow: 0 0 2px rgba(253, 156, 33, 0.5);
+  box-shadow: 0 0 2px var(--primary-color-faded);
+}
+
+.step.active.current {
+  transform: scale(1.05);
+  transition: transform 100ms ease-out;
 }
 
 .step-velocity {
@@ -151,8 +162,7 @@ input[type="number"] {
 .chord-editor {
   position: absolute;
   background-color: var(--control-bg);
-  border: 1px solid var(--control-bg-alt);
-  padding: 10px;
+  padding: 15px;
   margin-top: 10px;
   border-radius: var(--border-radius);
   z-index: 10;
@@ -161,14 +171,15 @@ input[type="number"] {
 .chord-notes {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 5px;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--control-bg-alt);
 }
 
 .chord-note {
   display: inline-block;
-  margin: 2px;
   padding: 5px;
-
   background-color: var(--bg-color);
   color: var(--text-color);
   border-radius: 3px;

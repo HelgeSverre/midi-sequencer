@@ -108,7 +108,7 @@
             <div
               x-show="isOpen"
               x-on:click.away="isOpen = false"
-              class="absolute left-0 top-full z-10 ml-1 mt-3 w-60 rounded-md border border-zinc-700 bg-zinc-800 p-3 shadow-lg"
+              class="dropdown absolute left-0 top-full z-10 ml-1 mt-3 w-60 rounded-md p-3"
             >
               <div class="grid grid-cols-6 gap-2">
                 <template x-for="color in colors">
@@ -199,7 +199,7 @@
                     <select
                       x-model="midiInputSelections[laneIndex]"
                       x-on:change="updateMidiInput(laneIndex)"
-                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                      class="mt-1 block w-full rounded-md"
                     >
                       <option value="">No Input</option>
                       <template x-for="(input, index) in midiInputs" :key="index">
@@ -214,7 +214,7 @@
                     <select
                       x-model="midiOutputSelections[laneIndex]"
                       x-on:change="updateMidiOutput(laneIndex)"
-                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                      class="mt-1 block w-full rounded-md"
                     >
                       <option value="">No Output</option>
                       <template x-for="output in midiOutputs" :key="output.id">
@@ -229,7 +229,7 @@
                     <select
                       x-model="lane.midiChannel"
                       x-on:change="updateMidiChannel(laneIndex)"
-                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                      class="mt-1 block w-full rounded-md"
                     >
                       <template x-for="channel in 16" :key="channel">
                         <option :value="channel" x-text="`Channel ${channel}`"></option>
