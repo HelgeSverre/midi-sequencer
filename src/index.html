@@ -188,7 +188,7 @@
                     x-text="step?.notes.length ? step?.notes.map($noteFromMidi).join(', ') : '—'"
                     class="font-medium text-black"
                   ></span>
-                  <span x-text="`${step?.duration.toFixed(1)} ms`" class="font-medium"></span>
+                  <span x-text="`${step?.duration?.toFixed(1)} ms`" class="font-medium"></span>
                 </div>
               </div>
             </template>
