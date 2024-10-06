@@ -38,7 +38,7 @@
         <input type="number" x-model="bpm" min="1" max="300" x-on:change="updateBpm" />
       </div>
       <button x-on:click="addLane()">Add Lane</button>
-      <div class="relative inline-block text-left" x-data="{ open: false }">
+      <div class="relative z-10 inline-block text-center" x-data="{ open: false }">
         <button
           @click="open = !open"
           type="button"
