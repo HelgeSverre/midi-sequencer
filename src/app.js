@@ -76,26 +76,24 @@ export default () => {
 
         // Add Tone.js as a special output option
         this.midiOutputs.push({ id: "tone", name: "Tone.js Output" });
-        this.midiInputs.forEach((input) => {
-          this.midiInputSelections.push(input.id);
-          input.onmidimessage = (message) => {
-            console.log(
-              "MIDI message received from input " +
-                input.id +
-                ": " +
-                message.data.map((d) => parseInt(d).toString(16)).join(" "),
-            );
-          };
-        });
 
-        // Initialize midiOutputSelections with empty strings
+        // Initialize midiInputSelections and midiOutputSelections
+        this.midiInputSelections = this.sequences.map(() => null);
         this.midiOutputSelections = this.sequences.map(() => "");
+
+        this.setupMidiListeners();
 
         this.midiStatus = "MIDI initialized successfully";
       } catch (err) {
         console.error("Could not access MIDI devices:", err);
         this.midiStatus = "Failed to initialize MIDI";
       }
+    },
+
+    setupMidiListeners() {
+      this.sequences.forEach((sequence, index) => {
+        this.updateMidiInput(index);
+      });
     },
 
     chordEditorNotesOctaveDown() {
@@ -370,120 +368,116 @@ export default () => {
       }
     },
 
-    handleMidiMessage(message, laneIndex) {
+    handleMidiMessage(message, inputId, laneIndex) {
+      const [status, note, velocity] = message.data;
+      const channel = status & 0xf;
+      const isNoteOn = (status & 0xf0) === 0x90;
+      const isNoteOff = (status & 0xf0) === 0x80;
+
       console.log("handleMidiMessage", {
         data: message.data.map((d) => parseInt(d).toString(16)).join(" "),
-        laneIndex,
-        isRecording: this.isRecording,
+        input: inputId,
+        lane: laneIndex,
+        channel,
+        type: isNoteOn ? "Note On" : isNoteOff ? "Note Off" : "Other",
       });
 
-      const [status, data1, data2] = message.data;
-      const channel = status & 0xf;
-      const messageType = status & 0xf0;
-
-      // Route the message to the appropriate output(s)
-      this.routeMidiMessage(channel, messageType, data1, data2);
+      // Route the message to the appropriate output
+      this.routeMidiMessage(laneIndex, status, note, velocity);
 
       if (this.isRecording) {
-        if (messageType === 0x90 && data2 > 0) {
-          this.handleNoteOn(channel, data1, data2);
-        } else if (messageType === 0x80 || (messageType === 0x90 && data2 === 0)) {
-          this.handleNoteOff(channel, data1);
+        if (isNoteOn && velocity > 0) {
+          this.handleNoteOn(laneIndex, note, velocity);
+        } else if (isNoteOff || (isNoteOn && velocity === 0)) {
+          this.handleNoteOff(laneIndex, note);
+        }
+      }
+    },
+    routeMidiMessage(laneIndex, status, note, velocity) {
+      const outputId = this.midiOutputSelections[laneIndex];
+      if (!outputId || outputId === "") {
+        return; // No output selected, do nothing
+      }
+
+      if (outputId === "tone") {
+        // Handle Tone.js output
+        const messageType = status & 0xf0;
+        if (messageType === 0x90 && velocity > 0) {
+          const freq = Tone.Frequency(note, "midi").toFrequency();
+          synth.triggerAttack(freq, Tone.now(), velocity / 127);
+        } else if (messageType === 0x80 || (messageType === 0x90 && velocity === 0)) {
+          const freq = Tone.Frequency(note, "midi").toFrequency();
+          synth.triggerRelease(freq);
+        }
+      } else {
+        const output = this.midiOutputs.find((output) => output.id === outputId);
+        if (output) {
+          const outputChannel = this.sequences[laneIndex].midiChannel;
+          const newStatus = (status & 0xf0) | (outputChannel - 1);
+          output.send([newStatus, note, velocity]);
+
+          console.log(
+            `Routed MIDI message: Lane ${laneIndex} -> Output "${output.name}" ch ${outputChannel}`,
+          );
         }
       }
     },
 
-    routeMidiMessage(inputChannel, messageType, data1, data2) {
-      this.sequences.forEach((sequence, index) => {
-        if (
-          sequence.midiInputSelections === "all" ||
-          parseInt(sequence.midiInputSelections) - 1 === inputChannel
-        ) {
-          const outputId = this.midiOutputSelections[index];
-          if (outputId && outputId !== "") {
-            const output = this.midiOutputs.find((output) => output.id === outputId);
-            if (output) {
-              const outputChannel = sequence.midiChannel - 1;
-              const newStatus = messageType | outputChannel;
-              output.send([newStatus, data1, data2]);
-
-              console.log(
-                `Routed MIDI message: Input ch ${inputChannel + 1} -> Output "${output.name}" ch ${outputChannel + 1}`,
-              );
-            }
-          }
-        }
-      });
-    },
-
-    handleNoteOn(channel, note, velocity) {
+    handleNoteOn(laneIndex, note, velocity) {
       const currentTime = performance.now();
       const currentStep = this.currentStep;
+      const sequence = this.sequences[laneIndex];
 
-      this.sequences.forEach((sequence, laneIndex) => {
-        if (
-          sequence.midiInputSelections === "all" ||
-          parseInt(sequence.midiInputSelections) - 1 === channel
-        ) {
-          // Check if there's an existing step within the chord threshold
-          let step = sequence.steps[currentStep];
-          if (step && currentTime - step.startTime < CHORD_THRESHOLD) {
-            // Add the note to the existing chord
-            if (!step.notes.includes(note)) {
-              step.notes.push(note);
-            }
-          } else {
-            // Create a new step for a new chord or single note
-            step = {
-              notes: [note],
-              velocity: velocity / 127,
-              duration: 100, // Initial duration, will be updated on note off
-              isRecording: true,
-              startTime: currentTime,
-            };
-            sequence.steps[currentStep] = step;
-          }
-
-          // Store the note-on time for duration calculation
-          this.noteOnTimes[`${laneIndex}-${channel}-${note}`] = {
-            time: currentTime,
-            step: currentStep,
-          };
+      // Check if there's an existing step within the chord threshold
+      let step = sequence.steps[currentStep];
+      if (step && currentTime - step.startTime < CHORD_THRESHOLD) {
+        // Add the note to the existing chord
+        if (!step.notes.includes(note)) {
+          step.notes.push(note);
         }
-      });
+      } else {
+        // Create a new step for a new chord or single note
+        step = {
+          notes: [note],
+          velocity: velocity / 127,
+          duration: 100, // Initial duration, will be updated on note off
+          isRecording: true,
+          startTime: currentTime,
+        };
+        sequence.steps[currentStep] = step;
+      }
+
+      // Store the note-on time for duration calculation
+      this.noteOnTimes[`${laneIndex}-${note}`] = {
+        time: currentTime,
+        step: currentStep,
+      };
     },
 
-    handleNoteOff(channel, note) {
-      this.sequences.forEach((sequence, laneIndex) => {
-        if (
-          sequence.midiInputSelections === "all" ||
-          parseInt(sequence.midiInputSelections) - 1 === channel
-        ) {
-          const noteOnInfo = this.noteOnTimes[`${laneIndex}-${channel}-${note}`];
-          if (noteOnInfo) {
-            const { time: noteOnTime, step: noteOnStep } = noteOnInfo;
-            const duration = Math.round(performance.now() - noteOnTime);
+    handleNoteOff(laneIndex, note) {
+      const sequence = this.sequences[laneIndex];
+      const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
+      if (noteOnInfo) {
+        const { time: noteOnTime, step: noteOnStep } = noteOnInfo;
+        const duration = Math.round(performance.now() - noteOnTime);
 
-            // Update the duration of the step where the note started
-            const step = sequence.steps[noteOnStep];
-            if (step && step.notes.includes(note)) {
-              // Set the duration to the longest note in the chord
-              step.duration = Math.max(step.duration, duration);
-            }
-
-            delete this.noteOnTimes[`${laneIndex}-${channel}-${note}`];
-
-            // If all notes in the chord are released, finalize the step
-            if (
-              Object.keys(this.noteOnTimes).filter((key) =>
-                key.startsWith(`${laneIndex}-${channel}-`),
-              ).length === 0
-            ) {
-              step.isRecording = false;
-            }
-          }
+        // Update the duration of the step where the note started
+        const step = sequence.steps[noteOnStep];
+        if (step && step.notes.includes(note)) {
+          // Set the duration to the longest note in the chord
+          step.duration = Math.max(step.duration, duration);
         }
-      });
+
+        delete this.noteOnTimes[`${laneIndex}-${note}`];
+
+        // If all notes in the chord are released, finalize the step
+        if (
+          Object.keys(this.noteOnTimes).filter((key) => key.startsWith(`${laneIndex}-`)).length ===
+          0
+        ) {
+          step.isRecording = false;
+        }
+      }
     },
 
     updateBpm() {
@@ -513,13 +507,37 @@ export default () => {
 
     updateMidiInput(laneIndex) {
       const inputId = this.midiInputSelections[laneIndex];
-      if (inputId === "" || inputId === null) {
+      const sequence = this.sequences[laneIndex];
+
+      // Remove previous listener if exists
+      if (sequence.midiListener) {
+        const oldInput = this.midiInputs.find(
+          (input) => input.id === sequence.midiListener.inputId,
+        );
+        if (oldInput) {
+          oldInput.removeEventListener("midimessage", sequence.midiListener.handler);
+        }
+        delete sequence.midiListener;
+      }
+
+      if (inputId === null) {
         return;
       }
 
       const input = this.midiInputs.find((input) => input.id === inputId);
       if (input) {
-        input.onmidimessage = (message) => this.handleMidiMessage(message, laneIndex);
+        const handler = (message) => {
+          const [status, note, velocity] = message.data;
+          const channel = status & 0xf;
+
+          // Process messages for the specified channel or if set to "all"
+          if (sequence.midiChannel === "all" || channel === sequence.midiChannel - 1) {
+            this.handleMidiMessage(message, inputId, laneIndex);
+          }
+        };
+
+        input.addEventListener("midimessage", handler);
+        sequence.midiListener = { inputId, handler };
       }
     },
 
