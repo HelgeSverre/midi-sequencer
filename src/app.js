@@ -538,9 +538,10 @@ export default () => {
     },
 
     updateMidiChannel(laneIndex, channel) {
-        this.sequences[laneIndex].midiChannel = channel;
+      console.log("updateMidiChannel", { laneIndex, channel });
 
-        this.updateMidiInput(laneIndex);
+      this.sequences[laneIndex].midiChannel = channel;
+      this.updateMidiInput(laneIndex);
     },
 
     allNotesOff() {
