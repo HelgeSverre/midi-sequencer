@@ -59,7 +59,7 @@ select:focus-visible {
 
 .dropdown {
   background-color: var(--control-bg);
-    z-index: 900;
+  z-index: 900;
 }
 
 .dropdown button,
