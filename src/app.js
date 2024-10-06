@@ -477,6 +477,10 @@ export default () => {
       }
     },
 
+    updateMidiOutput(laneIndex) {
+      // Do nothing yet.
+    },
+
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
         const outputId = this.midiOutputSelections[laneIndex];
