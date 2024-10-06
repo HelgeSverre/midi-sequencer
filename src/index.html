@@ -138,7 +138,7 @@
                 <template x-for="color in colors">
                   <button
                     :style="`background-color: ${color.value}!important;`"
-                    class="block size-8 rounded-sm border border-zinc-300 dark:border-gray-600"
+                    class="block size-8 rounded-sm border border-zinc-300"
                     x-bind:class="{
                               'text-white': color.text == 'white',
                               'text-black': color.text == 'black',
@@ -154,7 +154,7 @@
           <button
             x-on:click="toggleMute(laneIndex)"
             :class="{ 'active': lane.isMuted }"
-            class="h-10  px-1.5 text-center"
+            class="h-10 px-1.5 text-center"
             title="Mute"
           >
             M
