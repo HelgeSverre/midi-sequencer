@@ -45,6 +45,13 @@ select {
   border-radius: var(--border-radius);
 }
 
+input[type="number"]:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--secondary-color);
+}
+
 .chord-editor button,
 .chord-editor select {
   background-color: var(--control-bg-alt);
