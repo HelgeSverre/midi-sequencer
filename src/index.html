@@ -159,6 +159,14 @@
           >
             M
           </button>
+          <button
+            x-on:click="toggleSolo(laneIndex)"
+            :class="{ 'active': lane.isSolo }"
+            class="h-10 px-1.5 text-center"
+            title="Mute"
+          >
+            S
+          </button>
 
           <div class="steps h-10">
             <template
