@@ -258,11 +258,13 @@
                 ></option>
               </template>
             </select>
-            <select x-model.number="lane.midiChannel" class="h-10 w-12 appearance-none text-center">
+            <select x-model.number="lane.midiChannel"
+                    x-on:change="updateMidiChannel(laneIndex)"
+                    class="h-10 w-12 appearance-none text-center">
               <template x-for="channel in 16" :key="`channel-${laneIndex}-${channel}`">
                 <option
                   :selected="lane.midiChannel === channel"
-                  :value="channel -1"
+                  :value="channel - 1"
                   x-text="channel"
                 ></option>
               </template>

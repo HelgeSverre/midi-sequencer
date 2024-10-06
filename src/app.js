@@ -537,6 +537,12 @@ export default () => {
       // Do nothing yet.
     },
 
+    updateMidiChannel(laneIndex, channel) {
+        this.sequences[laneIndex].midiChannel = channel;
+
+        this.updateMidiInput(laneIndex);
+    },
+
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
         const outputId = this.midiOutputSelections[laneIndex];
