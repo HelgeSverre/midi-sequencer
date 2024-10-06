@@ -194,7 +194,10 @@
       x-trap="chordEditorOpen"
       x-show="chordEditorOpen"
       class="chord-editor"
-      :style="{ top: chordEditorPosition.y + 'px', left: chordEditorPosition.x + 'px' }"
+      :style="{
+          top:  `${chordEditorPosition.y}px`,
+          left: `${chordEditorPosition.x}px`
+      }"
     >
       <h3 class="sr-only">Edit Chord/Notes</h3>
       <div class="chord-notes mb-2">
