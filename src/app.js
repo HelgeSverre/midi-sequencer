@@ -7,6 +7,7 @@ const synth = new Tone.PolySynth().toDestination();
 
 export default () => {
   return {
+    forwardMidi: false, // if true, notes will be forwarded to the output device immediately (for testing)
     isPlaying: false,
     isRecording: false,
     bpm: 120,
@@ -375,7 +376,9 @@ export default () => {
       });
 
       // Route the message to the appropriate output
-      this.routeMidiMessage(laneIndex, status, note, velocity);
+      if (this.forwardMidi) {
+        this.routeMidiMessage(laneIndex, status, note, velocity);
+      }
 
       if (this.isRecording) {
         if (isNoteOn && velocity > 0) {
