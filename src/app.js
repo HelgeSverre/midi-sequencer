@@ -337,6 +337,15 @@ export default () => {
     },
 
     sendMidiNotes(laneIndex, notes, velocity, duration, startTime) {
+      console.log("sendMidiNotes", {
+        laneIndex,
+        notes,
+        velocity,
+        duration,
+        startTime,
+        channel: this.sequences[laneIndex].midiChannel - 1,
+      });
+
       const outputId = this.midiOutputSelections[laneIndex];
       if (outputId === "" || outputId === null) {
         return;
