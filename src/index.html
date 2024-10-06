@@ -112,6 +112,7 @@
               <span class="inline-block" x-text="laneIndex + 1"></span>
             </button>
             <div
+              x-cloak
               x-show="isOpen"
               x-on:click.away="isOpen = false"
               class="dropdown absolute left-0 top-full z-10 ml-1 mt-3 w-60 rounded-md p-3"
@@ -191,6 +192,7 @@
             </button>
 
             <div
+              x-cloak
               x-show="open"
               @click.away="open = false"
               class="dropdown absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-zinc-800"
