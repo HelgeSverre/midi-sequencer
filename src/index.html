@@ -11,6 +11,12 @@
     />
     <script type="module" src="./main.js" defer></script>
 
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+
     <!-- Icon -->
     <link rel="icon" type="image/png" href="/favicon/favicon-48x48.png" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
@@ -19,7 +25,7 @@
     <meta name="apple-mobile-web-app-title" content="Sequencer" />
     <link rel="manifest" href="/favicon/site.webmanifest" />
   </head>
-  <body x-data="app" class="flex h-full w-full flex-col antialiased">
+  <body x-data="app" x-cloak class="flex h-full w-full flex-col antialiased">
     <nav class="top-controls">
       <button x-on:click="togglePlay()" :class="{ active: isPlaying }">
         <span x-text="isPlaying ? 'Pause' : 'Play'"></span>
