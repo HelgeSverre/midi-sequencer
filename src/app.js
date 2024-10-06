@@ -1,6 +1,7 @@
 import * as Tone from "tone";
 
 const PERSIST_KEY = "sequencer_data";
+const CHORD_THRESHOLD = 50;
 
 const synth = new Tone.PolySynth().toDestination();
 
@@ -365,21 +366,32 @@ export default () => {
     },
     handleNoteOn(laneIndex, note, velocity) {
       const currentTime = performance.now();
+      const currentStep = this.currentStep;
+
+      // Check if there's an existing step within the chord threshold
+      let step = this.sequences[laneIndex].steps[currentStep];
+      if (step && currentTime - step.startTime < CHORD_THRESHOLD) {
+        // Add the note to the existing chord
+        if (!step.notes.includes(note)) {
+          step.notes.push(note);
+        }
+      } else {
+        // Create a new step for a new chord or single note
+        step = {
+          notes: [note],
+          velocity: velocity / 127,
+          duration: 100, // Initial duration, will be updated on note off
+          isRecording: true,
+          startTime: currentTime,
+        };
+        this.sequences[laneIndex].steps[currentStep] = step;
+      }
+
+      // Store the note-on time for duration calculation
       this.noteOnTimes[`${laneIndex}-${note}`] = {
         time: currentTime,
-        step: this.currentStep,
+        step: currentStep,
       };
-
-      // Always create a new step object when a note is pressed
-      const newStep = {
-        notes: [note],
-        velocity: velocity / 127,
-        duration: 100, // Initial duration, will be updated on note off
-        isRecording: true,
-      };
-
-      // Overwrite the current step completely
-      this.sequences[laneIndex].steps[this.currentStep] = newStep;
     },
     handleNoteOff(laneIndex, note) {
       const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
@@ -387,13 +399,22 @@ export default () => {
         const { time: noteOnTime, step: noteOnStep } = noteOnInfo;
         const duration = Math.round(performance.now() - noteOnTime);
 
-        // Update only the step where the note started
+        // Update the duration of the step where the note started
         const step = this.sequences[laneIndex].steps[noteOnStep];
         if (step && step.notes.includes(note)) {
-          step.duration = duration; // Set the full duration of the note
+          // Set the duration to the longest note in the chord
+          step.duration = Math.max(step.duration, duration);
         }
 
         delete this.noteOnTimes[`${laneIndex}-${note}`];
+
+        // If all notes in the chord are released, finalize the step
+        if (
+          Object.keys(this.noteOnTimes).filter((key) => key.startsWith(`${laneIndex}-`)).length ===
+          0
+        ) {
+          step.isRecording = false;
+        }
       }
     },
     updateBpm() {
