@@ -313,7 +313,7 @@ export default () => {
         if (outputId !== "") {
           if (outputId === "tone") {
             // Tone.js output
-            synth.releaseAll();
+            synth.triggerRelease(Tone.now());
           } else {
             // Regular MIDI output
             const output = this.midiOutputs.find((output) => output.id === outputId);
