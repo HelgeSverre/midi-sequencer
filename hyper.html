@@ -136,10 +136,29 @@
         }
 
 
-        .midi-status {
-            margin-top: 20px;
-            text-align: center;
-            font-style: italic;
+        .chord-editor {
+            position: absolute;
+            background-color: var(--control-bg);
+            border: 1px solid var(--primary-color);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+        }
+
+        .chord-note {
+            display: inline-block;
+            margin: 2px;
+            padding: 5px;
+
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .chord-note.active {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
         }
     </style>
 </head>
@@ -191,18 +210,14 @@
                                 'active': step !== null,
                                 'current': stepIndex === currentStep
                             }"
-                                @click="toggleStep(laneIndex, stepIndex)"
+                                @click="openChordEditor(laneIndex, stepIndex)"
                         >
                             <div
                                     x-show="step !== null"
                                     class="step-velocity"
                                     :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
                             ></div>
-                            <span x-text="step ? getNoteNameFromMidiNumber(step.note) : ''"
-                                  class="step-note"
-                            ></span>
-
-
+                            <span x-text="getStepDisplay(step)" class="step-note"></span>
                         </div>
                     </template>
                 </div>
@@ -212,7 +227,28 @@
             </div>
         </template>
     </div>
-    <div class="midi-status" x-text="midiStatus"></div>
+
+    <!-- Chord Editor -->
+    <div x-show="chordEditorOpen" class="chord-editor"
+         :style="{ top: chordEditorPosition.y + 'px', left: chordEditorPosition.x + 'px' }">
+        <h3>Edit Chord/Notes</h3>
+        <div>
+            <template x-for="note in [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]">
+                <span
+                        class="chord-note"
+                        :class="{ 'active': isNoteInChord(note) }"
+                        x-text="getNoteNameFromMidiNumber(note)"
+                        @click="toggleNoteInChord(note)"
+                ></span>
+            </template>
+        </div>
+        <label>
+            Velocity:
+            <input type="range" min="0" max="1" step="0.01" x-model="editingStep.velocity">
+        </label>
+        <button @click="saveChord">Save</button>
+        <button @click="closeChordEditor">Cancel</button>
+    </div>
 </div>
 
 <script>
@@ -222,7 +258,6 @@
             isRecording: false,
             bpm: 120,
             currentStep: 0,
-
             sequences: [
                 {midiChannel: 1, steps: Array(16).fill(null)}
             ],
@@ -233,6 +268,11 @@
             midiInputSelections: [''],
             midiOutputSelections: [''],
             midiStatus: 'MIDI not initialized',
+            chordEditorOpen: false,
+            chordEditorPosition: {x: 0, y: 0},
+            editingLaneIndex: null,
+            editingStepIndex: null,
+            editingStep: {notes: [], velocity: 0.7},
 
             async init() {
                 await this.initMidi();
@@ -284,20 +324,57 @@
                 this.isRecording = !this.isRecording;
             },
 
-            toggleStep(laneIndex, stepIndex) {
-                const currentStep = this.sequences[laneIndex].steps[stepIndex];
-                if (currentStep === null) {
-                    this.sequences[laneIndex].steps[stepIndex] = {note: 60, velocity: 0.7};
+            openChordEditor(laneIndex, stepIndex) {
+                const rect = event.target.getBoundingClientRect();
+                this.chordEditorPosition = {
+                    x: rect.left,
+                    y: rect.bottom + window.scrollY
+                };
+                this.editingLaneIndex = laneIndex;
+                this.editingStepIndex = stepIndex;
+                this.editingStep = this.sequences[laneIndex].steps[stepIndex] || {notes: [], velocity: 0.7};
+                this.chordEditorOpen = true;
+            },
+
+            closeChordEditor() {
+                this.chordEditorOpen = false;
+            },
+
+            isNoteInChord(note) {
+                return this.editingStep.notes.includes(note);
+            },
+
+            toggleNoteInChord(note) {
+                const index = this.editingStep.notes.indexOf(note);
+                if (index > -1) {
+                    this.editingStep.notes.splice(index, 1);
                 } else {
-                    this.sequences[laneIndex].steps[stepIndex] = null;
+                    this.editingStep.notes.push(note);
                 }
+            },
+
+            saveChord() {
+                if (this.editingStep.notes.length > 0) {
+                    this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] = this.editingStep;
+                } else {
+                    this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] = null;
+                }
+                this.closeChordEditor();
+            },
+
+            getStepDisplay(step) {
+                if (!step || step.notes.length === 0) return '';
+                if (step.notes.length === 1) return this.getNoteNameFromMidiNumber(step.notes[0]);
+                return `Chord (${step.notes.length})`;
             },
 
             playStep() {
                 this.sequences.forEach((lane, laneIndex) => {
                     const step = lane.steps[this.currentStep];
-                    if (step) {
-                        this.sendMidiNote(laneIndex, step.note, step.velocity);
+                    if (step && step.notes.length > 0) {
+                        step.notes.forEach(note => {
+                            this.sendMidiNote(laneIndex, note, step.velocity);
+                        });
                     }
                 });
             },
@@ -311,6 +388,23 @@
                     setTimeout(() => {
                         output.send([0x80 + channel, note, 0]); // Note Off
                     }, 100); // Note duration
+                }
+            },
+
+            handleMidiMessage(message, laneIndex) {
+                if (this.isRecording) {
+                    const [status, note, velocity] = message.data;
+                    if (status >= 144 && status <= 159 && velocity > 0) { // Note On, any channel
+                        const currentStep = this.sequences[laneIndex].steps[this.currentStep] || {
+                            notes: [],
+                            velocity: 0.7
+                        };
+                        if (!currentStep.notes.includes(note)) {
+                            currentStep.notes.push(note);
+                        }
+                        currentStep.velocity = velocity / 127;
+                        this.sequences[laneIndex].steps[this.currentStep] = currentStep;
+                    }
                 }
             },
 
@@ -345,7 +439,6 @@
                 this.sequences.forEach(lane => lane.steps.fill(null));
             },
 
-
             updateMidiInput(laneIndex) {
                 const inputIndex = this.midiInputSelections[laneIndex];
                 if (inputIndex !== '') {
@@ -359,15 +452,6 @@
 
             updateMidiChannel(laneIndex) {
                 // MIDI channel update logic (if needed)
-            },
-
-            handleMidiMessage(message, laneIndex) {
-                if (this.isRecording) {
-                    const [status, note, velocity] = message.data;
-                    if (status >= 144 && status <= 159 && velocity > 0) { // Note On, any channel
-                        this.sequences[laneIndex].steps[this.currentStep] = {note, velocity: velocity / 127};
-                    }
-                }
             },
 
             allNotesOff() {
@@ -388,7 +472,8 @@
                 const octave = Math.floor(midiNumber / 12) - 1;
                 const noteName = noteNames[midiNumber % 12];
                 return `${noteName}${octave}`;
-            }
+            },
+            
         }));
     });
 </script>
