@@ -35,8 +35,7 @@ export default () => {
       velocity: 0.7,
       duration: 100,
     },
-    noteOnTimes: {}, // To store the start time of each note for duration calculation
-
+    noteOnTimes: {},
     chordEditorNotes: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
 
     colors: [
@@ -102,6 +101,7 @@ export default () => {
     chordEditorNotesOctaveDown() {
       this.chordEditorNotes = this.chordEditorNotes.map((note) => note - 12);
     },
+
     chordEditorNotesOctaveUp() {
       this.chordEditorNotes = this.chordEditorNotes.map((note) => note + 12);
     },
@@ -128,7 +128,9 @@ export default () => {
     },
 
     reset() {
-      this.sequences = [{ midiChannel: 1, steps: Array(16).fill(null) }];
+      this.sequences = [
+        { midiChannel: 1, steps: Array(16).fill(null), isMuted: false, isSolo: false },
+      ];
       this.midiInputSelections = [null];
       this.midiOutputSelections = [null];
       this.bpm = 120;
@@ -233,17 +235,20 @@ export default () => {
       };
       update();
     },
+
     togglePlay() {
       this.isPlaying = !this.isPlaying;
       if (this.isPlaying) {
         this.lastStepTime = performance.now();
       }
     },
+
     stop() {
       this.isPlaying = false;
       this.currentStep = 0;
       this.allNotesOff();
     },
+
     toggleRecord() {
       this.isRecording = !this.isRecording;
       if (!this.isRecording) {
@@ -262,6 +267,7 @@ export default () => {
         });
       }
     },
+
     openChordEditor(laneIndex, stepIndex) {
       const rect = event.target.getBoundingClientRect();
       this.chordEditorPosition = {
@@ -277,12 +283,15 @@ export default () => {
       };
       this.chordEditorOpen = true;
     },
+
     closeChordEditor() {
       this.chordEditorOpen = false;
     },
+
     isNoteInChord(note) {
       return this.editingStep.notes.includes(note);
     },
+
     toggleNoteInChord(note) {
       const index = this.editingStep.notes.indexOf(note);
       if (index > -1) {
@@ -291,6 +300,7 @@ export default () => {
         this.editingStep.notes.push(note);
       }
     },
+
     saveChord() {
       if (this.editingStep.notes.length > 0) {
         this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] = this.editingStep;
@@ -299,6 +309,7 @@ export default () => {
       }
       this.closeChordEditor();
     },
+
     playStep() {
       const currentTime = performance.now();
       this.sequences.forEach((lane, laneIndex) => {
@@ -364,6 +375,7 @@ export default () => {
         }
       }
     },
+
     handleNoteOn(laneIndex, note, velocity) {
       const currentTime = performance.now();
       const currentStep = this.currentStep;
@@ -393,6 +405,7 @@ export default () => {
         step: currentStep,
       };
     },
+
     handleNoteOff(laneIndex, note) {
       const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
       if (noteOnInfo) {
@@ -417,26 +430,32 @@ export default () => {
         }
       }
     },
+
     updateBpm() {
       // BPM update logic (if needed)
     },
+
     cloneLane(index) {
       const clonedLane = JSON.parse(JSON.stringify(this.sequences[index]));
       this.sequences.splice(index + 1, 0, clonedLane);
       this.midiInputSelections.splice(index + 1, 0, this.midiInputSelections[index]);
       this.midiOutputSelections.splice(index + 1, 0, this.midiOutputSelections[index]);
     },
+
     removeLane(index) {
       this.sequences.splice(index, 1);
       this.midiInputSelections.splice(index, 1);
       this.midiOutputSelections.splice(index, 1);
     },
+
     clearLane(index) {
       this.sequences[index].steps.fill(null);
     },
+
     clearAll() {
       this.sequences.forEach((lane) => lane.steps.fill(null));
     },
+
     updateMidiInput(laneIndex) {
       const inputId = this.midiInputSelections[laneIndex];
       if (inputId === "" || inputId === null) {
@@ -448,6 +467,7 @@ export default () => {
         input.onmidimessage = (message) => this.handleMidiMessage(message, laneIndex);
       }
     },
+
     updateMidiOutput(laneIndex) {},
     updateMidiChannel(laneIndex) {},
     allNotesOff() {
@@ -472,6 +492,7 @@ export default () => {
         }
       });
     },
+
     addLane() {
       this.sequences.push({
         midiChannel: 1,
