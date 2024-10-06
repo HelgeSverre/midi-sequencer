@@ -16,8 +16,8 @@ export default () => {
     midiAccess: null,
     midiInputs: [],
     midiOutputs: [],
-    midiInputSelections: [""],
-    midiOutputSelections: [""],
+    midiInputSelections: [null],
+    midiOutputSelections: [null],
     midiStatus: "MIDI not initialized",
     chordEditorOpen: false,
     chordEditorPosition: { x: 0, y: 0 },
@@ -31,8 +31,8 @@ export default () => {
     noteOnTimes: {}, // To store the start time of each note for duration calculation
     async init() {
       await this.initMidi();
-      // this.loadPersistedData();
-      // this.setupWatchers();
+      this.loadPersistedData();
+      this.setupWatchers();
       this.startUpdateLoop();
     },
     async initMidi() {
@@ -68,20 +68,57 @@ export default () => {
     loadPersistedData() {
       try {
         const loaded = JSON.parse(localStorage.getItem(PERSIST_KEY) || "{}");
-        this.sequences = loaded.sequences || this.sequences;
-        this.midiInputSelections = loaded.midiInputSelections || this.midiInputSelections;
-        this.midiOutputSelections = loaded.midiOutputSelections || this.midiOutputSelections;
 
+        // Load sequences
+        this.sequences = loaded.sequences || this.sequences;
+
+        // Load MIDI input and output selections
+        this.midiInputSelections = loaded.midiInputSelections || [null];
+        this.midiOutputSelections = loaded.midiOutputSelections || [null];
+
+        // Load BPM
         this.bpm = loaded.bpm || this.bpm;
 
-        // Reconnect MIDI inputs and outputs
+        // Ensure midiInputSelections and midiOutputSelections match the sequence length
+        while (this.midiInputSelections.length < this.sequences.length) {
+          this.midiInputSelections.push(null);
+        }
+        while (this.midiOutputSelections.length < this.sequences.length) {
+          this.midiOutputSelections.push(null);
+        }
+
+        // Trim excess selections if necessary
+        this.midiInputSelections = this.midiInputSelections.slice(0, this.sequences.length);
+        this.midiOutputSelections = this.midiOutputSelections.slice(0, this.sequences.length);
+
+        // Re-hookup MIDI inputs
         this.midiInputSelections.forEach((inputId, index) => {
           if (inputId) {
-            const input = this.midiInputs.find((i) => i.id === inputId);
+            const input = this.midiInputs.find((i) => i.id == inputId);
             if (input) {
-              // this.updateMidiInput(index);
+              input.onmidimessage = (message) => this.handleMidiMessage(message, index);
+            } else {
+              console.warn(`MIDI input ${inputId} not found. Clearing selection.`);
+              this.midiInputSelections[index] = null;
             }
           }
+        });
+
+        // Validate MIDI outputs
+        this.midiOutputSelections = this.midiOutputSelections.map((outputId) => {
+          if (outputId === "tone" || this.midiOutputs.some((output) => output.id === outputId)) {
+            return outputId;
+          } else {
+            console.warn(`MIDI output ${outputId} not found. Clearing selection.`);
+            return null;
+          }
+        });
+
+        console.log("Persisted data loaded and MIDI devices re-hooked:", {
+          sequences: this.sequences.length,
+          midiInputSelections: this.midiInputSelections,
+          midiOutputSelections: this.midiOutputSelections,
+          bpm: this.bpm,
         });
       } catch (err) {
         console.error("Could not load persisted data:", err);
@@ -104,8 +141,6 @@ export default () => {
       };
 
       localStorage.setItem(PERSIST_KEY, JSON.stringify(data));
-
-      console.log("Data persisted", data);
     },
 
     startUpdateLoop() {
@@ -209,7 +244,7 @@ export default () => {
     },
     sendMidiNote(laneIndex, note, velocity, duration, startTime) {
       const outputId = this.midiOutputSelections[laneIndex];
-      if (outputId === "") {
+      if (outputId === "" || outputId === null) {
         return;
       }
 
@@ -299,7 +334,7 @@ export default () => {
     },
     updateMidiInput(laneIndex) {
       const inputIndex = this.midiInputSelections[laneIndex];
-      if (inputIndex !== "") {
+      if (inputIndex !== "" && inputIndex !== null) {
         this.midiInputs[inputIndex].onmidimessage = (message) => {
           this.handleMidiMessage(message, laneIndex);
         };
@@ -310,18 +345,20 @@ export default () => {
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
         const outputId = this.midiOutputSelections[laneIndex];
-        if (outputId !== "") {
-          if (outputId === "tone") {
-            // Tone.js output
-            synth.triggerRelease(Tone.now());
-          } else {
-            // Regular MIDI output
-            const output = this.midiOutputs.find((output) => output.id === outputId);
-            if (output) {
-              const channel = lane.midiChannel - 1;
-              for (let note = 0; note < 128; note++) {
-                output.send([0x80 + channel, note, 0]); // Note Off
-              }
+        if (outputId !== "" && outputId !== null) {
+          return;
+        }
+
+        if (outputId === "tone") {
+          // Tone.js output
+          synth.triggerRelease(Tone.now());
+        } else {
+          // Regular MIDI output
+          const output = this.midiOutputs.find((output) => output.id === outputId);
+          if (output) {
+            const channel = lane.midiChannel - 1;
+            for (let note = 0; note < 128; note++) {
+              output.send([0x80 + channel, note, 0]); // Note Off
             }
           }
         }
