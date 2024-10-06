@@ -36,7 +36,7 @@
     </nav>
 
     <main class="sequencer">
-      <template x-for="(lane, laneIndex) in sequences" :key="laneIndex">
+      <template x-for="(lane, laneIndex) in sequences" :key="`lane-${laneIndex}`">
         <div class="lane">
           <div class="lane-controls">
             <select x-model="midiInputSelections[laneIndex]" @change="updateMidiInput(laneIndex)">
@@ -58,7 +58,10 @@
             </select>
           </div>
           <div class="steps">
-            <template x-for="(step, stepIndex) in lane.steps" :key="stepIndex">
+            <template
+              x-for="(step, stepIndex) in lane.steps"
+              :key="`lane-${laneIndex}-step-${stepIndex}`"
+            >
               <div
                 class="step"
                 :class="{
