@@ -7,9 +7,9 @@ export default () => {
     bpm: 120,
     currentStep: 0,
     sequences: [
-        { midiChannel: 1, steps: Array(16).fill(null) },
-        { midiChannel: 2, steps: Array(16).fill(null) },
-        { midiChannel: 3, steps: Array(16).fill(null) },
+      { midiChannel: 1, steps: Array(16).fill(null) },
+      { midiChannel: 2, steps: Array(16).fill(null) },
+      { midiChannel: 3, steps: Array(16).fill(null) },
     ],
     lastStepTime: performance.now(),
     midiAccess: null,
