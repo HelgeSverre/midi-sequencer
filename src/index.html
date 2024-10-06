@@ -29,7 +29,7 @@
         <span x-text="isRecording ? 'Stop Recording' : 'Record'"></span>
       </button>
       <div class="mx-auto">
-        <input type="number" x-model="bpm" min="1" max="300" @change="updateBpm" />
+        <input type="number" x-model="bpm" min="1" max="300" x-on:change="updateBpm" />
       </div>
       <button x-on:click="addLane()">Add Lane</button>
       <button x-on:click="clearAll()">Clear All</button>
@@ -39,19 +39,25 @@
       <template x-for="(lane, laneIndex) in sequences" :key="`lane-${laneIndex}`">
         <div class="lane">
           <div class="lane-controls">
-            <select x-model="midiInputSelections[laneIndex]" @change="updateMidiInput(laneIndex)">
+            <select
+              x-model="midiInputSelections[laneIndex]"
+              x-on:change="updateMidiInput(laneIndex)"
+            >
               <option value="">No Input</option>
               <template x-for="(input, index) in midiInputs" :key="index">
                 <option :value="input.id" x-text="input.name"></option>
               </template>
             </select>
-            <select x-model="midiOutputSelections[laneIndex]" @change="updateMidiOutput(laneIndex)">
+            <select
+              x-model="midiOutputSelections[laneIndex]"
+              x-on:change="updateMidiOutput(laneIndex)"
+            >
               <option value="">No Output</option>
               <template x-for="output in midiOutputs" :key="output.id">
                 <option :value="output.id" x-text="output.name"></option>
               </template>
             </select>
-            <select x-model="lane.midiChannel" @change="updateMidiChannel(laneIndex)">
+            <select x-model="lane.midiChannel" x-on:change="updateMidiChannel(laneIndex)">
               <template x-for="channel in 16" :key="channel">
                 <option :value="channel" x-text="`Channel ${channel}`"></option>
               </template>
