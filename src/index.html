@@ -44,6 +44,9 @@
           class="appearance-none text-center"
         />
       </div>
+
+      <button x-on:click="quantizeAllNotes()">Quantize</button>
+
       <button x-on:click="addLane()">Add Lane</button>
       <div class="relative z-10 inline-block text-center" x-data="{ open: false }">
         <button
@@ -298,8 +301,8 @@
       }"
     >
       <h3 class="sr-only">Edit Chord/Notes</h3>
-      <div class="chord-notes mb-2">
-        <template x-for="note in [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]">
+      <div class="chord-notes">
+        <template x-for="note in chordEditorNotes">
           <button
             class="chord-note"
             :class="{ 'active': isNoteInChord(note) }"
@@ -307,6 +310,10 @@
             x-on:click="toggleNoteInChord(note)"
           ></button>
         </template>
+      </div>
+      <div class="mt-2 mb-4 flex flex-row items-center justify-between">
+        <button x-on:click="chordEditorNotesOctaveDown()">Oct -</button>
+        <button x-on:click="chordEditorNotesOctaveUp()">Oct +</button>
       </div>
 
       <div class="flex w-full gap-2">

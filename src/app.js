@@ -1,4 +1,3 @@
-import { getNoteNameFromMidiNumber } from "@/utils.js";
 import * as Tone from "tone";
 
 const PERSIST_KEY = "sequencer_data";
@@ -34,6 +33,8 @@ export default () => {
       duration: 100,
     },
     noteOnTimes: {}, // To store the start time of each note for duration calculation
+
+    chordEditorNotes: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71],
 
     colors: [
       { label: "White", value: "#ffffff", text: "black" },
@@ -93,6 +94,13 @@ export default () => {
         console.error("Could not access MIDI devices:", err);
         this.midiStatus = "Failed to initialize MIDI";
       }
+    },
+
+    chordEditorNotesOctaveDown() {
+      this.chordEditorNotes = this.chordEditorNotes.map((note) => note - 12);
+    },
+    chordEditorNotesOctaveUp() {
+      this.chordEditorNotes = this.chordEditorNotes.map((note) => note + 12);
     },
 
     reset() {
@@ -276,30 +284,41 @@ export default () => {
         }
       });
     },
+
+    quantizeAllNotes() {
+      const stepDuration = 60000 / this.bpm / 4; // Duration of a 16th note in ms
+
+      this.sequences.forEach((lane) => {
+        lane.steps.forEach((step) => {
+          if (step && step.duration) {
+            // Round the duration to the nearest multiple of stepDuration
+            step.duration = Math.round(step.duration / stepDuration) * stepDuration;
+          }
+        });
+      });
+    },
+
     sendMidiNotes(laneIndex, notes, velocity, duration, startTime) {
       const outputId = this.midiOutputSelections[laneIndex];
       if (outputId === "" || outputId === null) {
         return;
       }
 
+      // Make sound with Tone.js if selected as output
       if (outputId === "tone") {
-        // Tone.js output - no need to send MIDI messages
-        const freq = Tone.Frequency(notes, "midi").toFrequency();
+        const freq = notes.map((note) => Tone.Frequency(note, "midi").toFrequency());
+        console.log("Playing note", notes, freq, "for", duration, "ms");
         synth.triggerAttackRelease(freq, duration / 1000, Tone.now(), velocity);
-      } else {
-        // Regular MIDI output
-        /**
-         * @type {MIDIOutput} output
-         * */
-        const output = this.midiOutputs.find((output) => output.id === outputId);
-        if (output) {
-          const channel = this.sequences[laneIndex].midiChannel - 1;
-          // Note On
+        return;
+      }
 
-          for (const note of notes) {
-            output.send([0x90 + channel, note, Math.round(velocity * 127)], startTime);
-            output.send([0x80 + channel, note, 0], startTime + duration); // Note Off
-          }
+      const output = this.midiOutputs.find((output) => output.id === outputId);
+      if (output) {
+        const channel = this.sequences[laneIndex].midiChannel - 1;
+        for (const note of notes) {
+          // Send note on and note off messages
+          output.send([0x90 + channel, note, Math.round(velocity * 127)], startTime);
+          output.send([0x80 + channel, note, 0], startTime + duration);
         }
       }
     },
