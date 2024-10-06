@@ -305,12 +305,8 @@ export default () => {
         };
       }
     },
-    updateMidiOutput(laneIndex) {
-      // MIDI output update logic (if needed)
-    },
-    updateMidiChannel(laneIndex) {
-      // MIDI channel update logic (if needed)
-    },
+    updateMidiOutput(laneIndex) {},
+    updateMidiChannel(laneIndex) {},
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
         const outputId = this.midiOutputSelections[laneIndex];
@@ -339,7 +335,5 @@ export default () => {
       this.midiInputSelections.push("");
       this.midiOutputSelections.push("");
     },
-
-    // ... (rest of the methods remain the same)
   };
 };
