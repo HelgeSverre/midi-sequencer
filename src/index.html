@@ -60,7 +60,7 @@
         <div
           x-show="open"
           @click.away="open = false"
-          class="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
+          class="absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg"
           role="menu"
           aria-orientation="vertical"
           aria-labelledby="options-menu"
@@ -90,11 +90,11 @@
 
     <main class="sequencer">
       <template x-for="(lane, laneIndex) in sequences" :key="`lane-${laneIndex}`">
-        <div class="lane">
+        <div class="lane gap-2">
           <div x-data="{ isOpen: false }" class="relative">
             <button
               x-on:click="isOpen = !isOpen"
-              class="flex size-8 items-center justify-center rounded px-1 text-center font-mono text-base leading-none"
+              class="flex size-10 items-center justify-center rounded text-center font-mono text-base leading-none"
               x-bind:class="{
                         'text-white': lane.color?.text == 'white',
                         'text-black': lane.color?.text == 'black',
@@ -108,13 +108,13 @@
             <div
               x-show="isOpen"
               x-on:click.away="isOpen = false"
-              class="absolute left-full top-full z-10 mt-1 w-60 rounded-md border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+              class="absolute left-0 top-full z-10 ml-1 mt-3 w-60 rounded-md border border-zinc-700 bg-zinc-800 p-3 shadow-lg"
             >
-              <div class="grid grid-cols-6 gap-1">
+              <div class="grid grid-cols-6 gap-2">
                 <template x-for="color in colors">
                   <button
                     :style="`background-color: ${color.value}!important;`"
-                    class="block size-8 rounded-sm border border-gray-300 dark:border-gray-600"
+                    class="block size-8 rounded-sm border border-zinc-300 dark:border-gray-600"
                     x-bind:class="{
                               'text-white': color.text == 'white',
                               'text-black': color.text == 'black',
@@ -127,38 +127,13 @@
             </div>
           </div>
 
-          <div class="lane-controls">
-            <select
-              x-model="midiInputSelections[laneIndex]"
-              x-on:change="updateMidiInput(laneIndex)"
-            >
-              <option value="">No Input</option>
-              <template x-for="(input, index) in midiInputs" :key="index">
-                <option :value="input.id" x-text="input.name"></option>
-              </template>
-            </select>
-            <select
-              x-model="midiOutputSelections[laneIndex]"
-              x-on:change="updateMidiOutput(laneIndex)"
-            >
-              <option value="">No Output</option>
-              <template x-for="output in midiOutputs" :key="output.id">
-                <option :value="output.id" x-text="output.name"></option>
-              </template>
-            </select>
-            <select x-model="lane.midiChannel" x-on:change="updateMidiChannel(laneIndex)">
-              <template x-for="channel in 16" :key="channel">
-                <option :value="channel" x-text="`Channel ${channel}`"></option>
-              </template>
-            </select>
-          </div>
-          <div class="steps">
+          <div class="steps h-10">
             <template
               x-for="(step, stepIndex) in lane.steps"
               :key="`lane-${laneIndex}-step-${stepIndex}`"
             >
               <div
-                class="step text-center"
+                class="step h-10 text-center"
                 :class="{
                       'active': step !== null,
                       'current': stepIndex === currentStep
@@ -181,9 +156,90 @@
               </div>
             </template>
           </div>
-          <button x-on:click="clearLane(laneIndex)">Clear</button>
-          <button x-on:click="cloneLane(laneIndex)">Clone</button>
-          <button x-on:click="removeLane(laneIndex)">Remove</button>
+          <button class="h-10" x-on:click="clearLane(laneIndex)">Clear</button>
+          <button class="h-10" x-on:click="cloneLane(laneIndex)">Clone</button>
+          <button class="h-10" x-on:click="removeLane(laneIndex)">Remove</button>
+
+          <div class="relative inline-block text-left" x-data="{ open: false }">
+            <button
+              @click="open = !open"
+              type="button"
+              class="inline-flex h-10 items-center gap-1"
+              id="lane-options-menu"
+              aria-haspopup="true"
+              x-bind:aria-expanded="open"
+            >
+              <svg
+                class="-mr-1 size-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <div
+              x-show="open"
+              @click.away="open = false"
+              class="dropdown absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-zinc-800"
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="lane-options-menu"
+            >
+              <div class="py-1" role="none">
+                <div class="px-4 py-2">
+                  <label class="block text-sm font-medium">
+                    Input
+                    <select
+                      x-model="midiInputSelections[laneIndex]"
+                      x-on:change="updateMidiInput(laneIndex)"
+                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                    >
+                      <option value="">No Input</option>
+                      <template x-for="(input, index) in midiInputs" :key="index">
+                        <option :value="input.id" x-text="input.name"></option>
+                      </template>
+                    </select>
+                  </label>
+                </div>
+                <div class="px-4 py-2">
+                  <label class="block text-sm font-medium">
+                    Output
+                    <select
+                      x-model="midiOutputSelections[laneIndex]"
+                      x-on:change="updateMidiOutput(laneIndex)"
+                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                    >
+                      <option value="">No Output</option>
+                      <template x-for="output in midiOutputs" :key="output.id">
+                        <option :value="output.id" x-text="output.name"></option>
+                      </template>
+                    </select>
+                  </label>
+                </div>
+                <div class="px-4 py-2">
+                  <label class="block text-sm font-medium">
+                    Channel
+                    <select
+                      x-model="lane.midiChannel"
+                      x-on:change="updateMidiChannel(laneIndex)"
+                      class="mt-1 block w-full rounded-md border-zinc-300 shadow-sm"
+                    >
+                      <template x-for="channel in 16" :key="channel">
+                        <option :value="channel" x-text="`Channel ${channel}`"></option>
+                      </template>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </main>
