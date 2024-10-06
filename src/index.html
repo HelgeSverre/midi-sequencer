@@ -34,7 +34,7 @@
       <button x-on:click="toggleRecord()" :class="{ active: isRecording }">
         <span x-text="isRecording ? 'Stop Recording' : 'Record'"></span>
       </button>
-      <div class="mx-auto">
+      <div class="mr-auto">
         <input
           type="number"
           x-model.number="bpm"
@@ -167,7 +167,10 @@
                   :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
                 ></div>
 
-                <div class="flex flex-col items-center justify-center" x-show="step !== null">
+                <div
+                  class="flex flex-col items-center justify-center gap-0.5 leading-none"
+                  x-show="step !== null"
+                >
                   <span
                     x-text="step?.notes.length ? step?.notes.map($noteFromMidi).join(', ') : '—'"
                     class="font-medium text-black"

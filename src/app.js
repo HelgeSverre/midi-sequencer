@@ -267,13 +267,6 @@ export default () => {
       }
       this.closeChordEditor();
     },
-    getStepDisplay(step) {
-      if (!step || step.notes.length === 0) return "";
-
-      const noteNames = step.notes.map((note) => getNoteNameFromMidiNumber(note)).join(", ");
-
-      return `${noteNames} (${step.duration}ms)`;
-    },
     playStep() {
       const currentTime = performance.now();
       this.sequences.forEach((lane, laneIndex) => {
