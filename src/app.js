@@ -1,4 +1,8 @@
 import { getNoteNameFromMidiNumber } from "@/utils.js";
+import * as Tone from "tone";
+
+
+const synth = new Tone.Synth().toDestination();
 
 export default () => {
   return {
@@ -34,6 +38,8 @@ export default () => {
         this.midiInputs = Array.from(this.midiAccess.inputs.values());
         this.midiOutputs = Array.from(this.midiAccess.outputs.values());
 
+        // Add Tone.js as a special output option
+        this.midiOutputs.push({ id: "tone", name: "Tone.js Output" });
         this.midiInputs.forEach((input) => {
           this.midiInputSelections.push(input.id);
           input.onmidimessage = (message) => {
@@ -127,20 +133,16 @@ export default () => {
     },
     saveChord() {
       if (this.editingStep.notes.length > 0) {
-        this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] =
-          this.editingStep;
+        this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] = this.editingStep;
       } else {
-        this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] =
-          null;
+        this.sequences[this.editingLaneIndex].steps[this.editingStepIndex] = null;
       }
       this.closeChordEditor();
     },
     getStepDisplay(step) {
       if (!step || step.notes.length === 0) return "";
 
-      const noteNames = step.notes
-        .map((note) => getNoteNameFromMidiNumber(note))
-        .join(", ");
+      const noteNames = step.notes.map((note) => getNoteNameFromMidiNumber(note)).join(", ");
 
       return `${noteNames} (${step.duration}ms)`;
     },
@@ -150,28 +152,34 @@ export default () => {
         const step = lane.steps[this.currentStep];
         if (step && step.notes.length > 0) {
           step.notes.forEach((note) => {
-            this.sendMidiNote(
-              laneIndex,
-              note,
-              step.velocity,
-              step.duration,
-              currentTime,
-            );
+            this.sendMidiNote(laneIndex, note, step.velocity, step.duration, currentTime);
           });
         }
       });
     },
     sendMidiNote(laneIndex, note, velocity, duration, startTime) {
-      const outputIndex = this.midiOutputSelections[laneIndex];
-      if (outputIndex !== "") {
-        const output = this.midiOutputs[outputIndex];
+      const outputId = this.midiOutputSelections[laneIndex];
+      if (outputId === "") {
+        return;
+      }
+
+      if (outputId === "tone") {
+        // Tone.js output - no need to send MIDI messages
+        const freq = Tone.Frequency(note, "midi").toFrequency();
+        synth.triggerAttackRelease(freq, duration / 1000, Tone.now(), velocity);
+      } else {
+        // Regular MIDI output
+        const output = this.midiOutputs.find((output) => output.id === outputId);
+        if (output) {
         const channel = this.sequences[laneIndex].midiChannel - 1;
         output.send([0x90 + channel, note, Math.round(velocity * 127)]); // Note On
         setTimeout(() => {
           output.send([0x80 + channel, note, 0]); // Note Off
         }, duration);
       }
+      }
     },
+
     handleMidiMessage(message, laneIndex) {
       if (this.isRecording) {
         const [status, note, velocity] = message.data;
@@ -204,7 +212,6 @@ export default () => {
       // Overwrite the current step completely
       this.sequences[laneIndex].steps[this.currentStep] = newStep;
     },
-
     handleNoteOff(laneIndex, note) {
       const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
       if (noteOnInfo) {
@@ -223,27 +230,11 @@ export default () => {
     updateBpm() {
       // BPM update logic (if needed)
     },
-    addLane() {
-      this.sequences.push({
-        midiChannel: 1,
-        steps: Array(16).fill(null),
-      });
-      this.midiInputSelections.push("");
-      this.midiOutputSelections.push("");
-    },
     cloneLane(index) {
       const clonedLane = JSON.parse(JSON.stringify(this.sequences[index]));
       this.sequences.splice(index + 1, 0, clonedLane);
-      this.midiInputSelections.splice(
-        index + 1,
-        0,
-        this.midiInputSelections[index],
-      );
-      this.midiOutputSelections.splice(
-        index + 1,
-        0,
-        this.midiOutputSelections[index],
-      );
+      this.midiInputSelections.splice(index + 1, 0, this.midiInputSelections[index]);
+      this.midiOutputSelections.splice(index + 1, 0, this.midiOutputSelections[index]);
     },
     removeLane(index) {
       this.sequences.splice(index, 1);
@@ -272,15 +263,33 @@ export default () => {
     },
     allNotesOff() {
       this.sequences.forEach((lane, laneIndex) => {
-        const outputIndex = this.midiOutputSelections[laneIndex];
-        if (outputIndex !== "") {
-          const output = this.midiOutputs[outputIndex];
+        const outputId = this.midiOutputSelections[laneIndex];
+        if (outputId !== "") {
+          if (outputId === "tone") {
+            // Tone.js output
+            synth.releaseAll();
+          } else {
+            // Regular MIDI output
+            const output = this.midiOutputs.find((output) => output.id === outputId);
+            if (output) {
           const channel = lane.midiChannel - 1;
           for (let note = 0; note < 128; note++) {
             output.send([0x80 + channel, note, 0]); // Note Off
           }
         }
+          }
+        }
       });
     },
+    addLane() {
+      this.sequences.push({
+        midiChannel: 1,
+        steps: Array(16).fill(null),
+      });
+      this.midiInputSelections.push("");
+      this.midiOutputSelections.push("");
+    },
+
+    // ... (rest of the methods remain the same)
   };
 };
