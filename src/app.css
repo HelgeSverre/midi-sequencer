@@ -36,11 +36,16 @@ select {
   background-color: var(--control-bg);
   color: var(--text-color);
   border: none;
-  padding: 12px 24px;
+  padding: 8px 12px;
   font-size: 16px;
   cursor: pointer;
-  transition: colors 0.3s;
+  transition: colors 200ms;
   border-radius: 5px;
+}
+
+.chord-editor button,
+.chord-editor select {
+  background-color: var(--control-bg-alt);
 }
 
 button:hover,
@@ -90,7 +95,7 @@ input[type="number"] {
   height: 50px;
   border: 2px solid var(--step-border);
   cursor: pointer;
-  transition: colors 0.3s;
+  transition: colors 200ms;
   border-radius: 5px;
   position: relative;
   overflow: hidden;
@@ -100,15 +105,16 @@ input[type="number"] {
   font-size: 12px;
 }
 
+.step.current {
+  background-color: rgba(34, 243, 211, 0.05);
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 2px rgba(34, 243, 211, 0.5);
+}
+
 .step.active {
   background-color: var(--primary-color);
   color: var(--bg-color);
-  box-shadow: 0 0 10px rgba(253, 156, 33, 0.5);
-}
-
-.step.current {
-  border-color: var(--secondary-color);
-  box-shadow: 0 0 10px rgba(34, 243, 211, 0.5);
+  box-shadow: 0 0 2px rgba(253, 156, 33, 0.5);
 }
 
 .step-velocity {
