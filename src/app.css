@@ -57,6 +57,18 @@ select:focus-visible {
   background-color: var(--control-bg-alt);
 }
 
+.dropdown {
+  background-color: var(--control-bg);
+    z-index: 900;
+}
+
+.dropdown button,
+.dropdown select,
+.dropdown input[type="number"] {
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-bg-alt);
+}
+
 button:hover,
 select:hover {
   background-color: #505050;
@@ -79,7 +91,6 @@ input[type="number"] {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 15px;
   margin-bottom: 15px;
 }
 
@@ -98,7 +109,6 @@ input[type="number"] {
 }
 
 .step {
-  height: 42px;
   min-width: 40px;
   border: 2px solid var(--step-border);
   cursor: pointer;
