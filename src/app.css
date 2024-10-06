@@ -51,7 +51,6 @@ select {
 button:hover,
 select:hover {
   background-color: #505050;
-  transform: translateY(-2px);
 }
 
 button.active {
