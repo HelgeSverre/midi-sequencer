@@ -6,7 +6,7 @@
     <title>Step Sequencer</title>
     <link rel="preconnect" href="https://fonts.bunny.net" />
     <link
-      href="https://fonts.bunny.net/css?family=inter:300,400,600,700|jetbrains-mono:100,200,300,400,500,600,700,800"
+      href="https://fonts.bunny.net/css?family=inter:300,400,500,600,700|jetbrains-mono:100,200,300,400,500,600,700,800"
       rel="stylesheet"
     />
     <script type="module" src="./main.js" defer></script>
@@ -32,7 +32,60 @@
         <input type="number" x-model="bpm" min="1" max="300" x-on:change="updateBpm" />
       </div>
       <button x-on:click="addLane()">Add Lane</button>
-      <button x-on:click="clearAll()">Clear All</button>
+      <div class="relative inline-block text-left" x-data="{ open: false }">
+        <button
+          @click="open = !open"
+          type="button"
+          class="relative inline-flex items-center gap-1"
+          id="options-menu"
+          aria-haspopup="true"
+          x-bind:aria-expanded="open"
+        >
+          Options
+          <svg
+            class="-mr-1 size-5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+
+        <div
+          x-show="open"
+          @click.away="open = false"
+          class="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
+          role="menu"
+          aria-orientation="vertical"
+          aria-labelledby="options-menu"
+        >
+          <div class="py-1" role="none">
+            <button
+              x-on:click="clearAll()"
+              class="block w-full p-3 text-left text-sm"
+              role="menuitem"
+            >
+              Clear All Notes
+            </button>
+            <button
+              x-on:click="clearPersistedData()"
+              class="block w-full p-3 text-left text-sm"
+              role="menuitem"
+            >
+              Clear local storage
+            </button>
+            <button x-on:click="reset()" class="block w-full p-3 text-left text-sm" role="menuitem">
+              Reset everything
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
 
     <main class="sequencer">
@@ -69,7 +122,7 @@
               :key="`lane-${laneIndex}-step-${stepIndex}`"
             >
               <div
-                class="step"
+                class="step text-center"
                 :class="{
                         'active': step !== null,
                         'current': stepIndex === currentStep
@@ -81,7 +134,14 @@
                   class="step-velocity"
                   :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
                 ></div>
-                <span x-text="getStepDisplay(step)" class="step-note"></span>
+
+                <div class="flex flex-col items-center justify-center">
+                  <span
+                    x-text="step.notes.length ? step.notes.map($noteFromMidi).join(', ') : '—'"
+                    class="font-medium text-black"
+                  ></span>
+                  <span x-text="`${step.duration}ms`" class="opacity-50"></span>
+                </div>
               </div>
             </template>
           </div>
@@ -101,7 +161,7 @@
       :style="{ top: chordEditorPosition.y + 'px', left: chordEditorPosition.x + 'px' }"
     >
       <h3 class="sr-only">Edit Chord/Notes</h3>
-      <div class="mb-2">
+      <div class="chord-notes mb-2">
         <template x-for="note in [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]">
           <button
             class="chord-note"
@@ -113,11 +173,11 @@
       </div>
 
       <div class="flex w-full gap-2">
-        <label class="mr-auto">
-          Velocity:
+        <label class="mr-auto flex flex-col items-start justify-center">
+          <span class="soft-label">Velocity</span>
           <input type="range" min="0" max="1" step="0.01" x-model="editingStep.velocity" />
         </label>
-        <button x-on:click="saveChord">Save</button>
+        <button class="active" x-on:click="saveChord">Save</button>
         <button x-on:click="closeChordEditor">Cancel</button>
       </div>
     </div>

@@ -65,6 +65,17 @@ export default () => {
       }
     },
 
+    reset() {
+      this.sequences = [{ midiChannel: 1, steps: Array(16).fill(null) }];
+      this.midiInputSelections = [null];
+      this.midiOutputSelections = [null];
+      this.bpm = 120;
+    },
+
+    clearPersistedData() {
+      localStorage.removeItem(PERSIST_KEY);
+    },
+
     loadPersistedData() {
       try {
         const loaded = JSON.parse(localStorage.getItem(PERSIST_KEY) || "{}");
