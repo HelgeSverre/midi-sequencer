@@ -6,17 +6,7 @@ export default () => {
     isRecording: false,
     bpm: 120,
     currentStep: 0,
-    sequences: [
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-      { midiChannel: 1, steps: Array(16).fill(null) },
-    ],
+    sequences: [{ midiChannel: 1, steps: Array(16).fill(null) }],
     lastStepTime: performance.now(),
     midiAccess: null,
     midiInputs: [],
@@ -31,7 +21,9 @@ export default () => {
     editingStep: {
       notes: [],
       velocity: 0.7,
+      duration: 100,
     },
+    noteOnTimes: {}, // To store the start time of each note for duration calculation
     async init() {
       await this.initMidi();
       this.startUpdateLoop();
@@ -88,6 +80,21 @@ export default () => {
     },
     toggleRecord() {
       this.isRecording = !this.isRecording;
+      if (!this.isRecording) {
+        // Handle any remaining active notes when stopping recording
+        Object.keys(this.noteOnTimes).forEach((key) => {
+          const [laneIndex, note] = key.split("-");
+          this.handleNoteOff(parseInt(laneIndex), parseInt(note));
+        });
+        this.noteOnTimes = {};
+
+        // Reset isRecording flag for all steps
+        this.sequences.forEach((lane) => {
+          lane.steps.forEach((step) => {
+            if (step) step.isRecording = false;
+          });
+        });
+      }
     },
     openChordEditor(laneIndex, stepIndex) {
       const rect = event.target.getBoundingClientRect();
@@ -100,6 +107,7 @@ export default () => {
       this.editingStep = this.sequences[laneIndex].steps[stepIndex] || {
         notes: [],
         velocity: 0.7,
+        duration: 100,
       };
       this.chordEditorOpen = true;
     },
@@ -129,21 +137,31 @@ export default () => {
     },
     getStepDisplay(step) {
       if (!step || step.notes.length === 0) return "";
-      if (step.notes.length === 1)
-        return getNoteNameFromMidiNumber(step.notes[0]);
-      return `Chord (${step.notes.length})`;
+
+      const noteNames = step.notes
+        .map((note) => getNoteNameFromMidiNumber(note))
+        .join(", ");
+
+      return `${noteNames} (${step.duration}ms)`;
     },
     playStep() {
+      const currentTime = performance.now();
       this.sequences.forEach((lane, laneIndex) => {
         const step = lane.steps[this.currentStep];
         if (step && step.notes.length > 0) {
           step.notes.forEach((note) => {
-            this.sendMidiNote(laneIndex, note, step.velocity);
+            this.sendMidiNote(
+              laneIndex,
+              note,
+              step.velocity,
+              step.duration,
+              currentTime,
+            );
           });
         }
       });
     },
-    sendMidiNote(laneIndex, note, velocity) {
+    sendMidiNote(laneIndex, note, velocity, duration, startTime) {
       const outputIndex = this.midiOutputSelections[laneIndex];
       if (outputIndex !== "") {
         const output = this.midiOutputs[outputIndex];
@@ -151,26 +169,55 @@ export default () => {
         output.send([0x90 + channel, note, Math.round(velocity * 127)]); // Note On
         setTimeout(() => {
           output.send([0x80 + channel, note, 0]); // Note Off
-        }, 100); // Note duration
+        }, duration);
       }
     },
     handleMidiMessage(message, laneIndex) {
       if (this.isRecording) {
         const [status, note, velocity] = message.data;
-        if (status >= 144 && status <= 159 && velocity > 0) {
-          // Note On, any channel
-          const currentStep = this.sequences[laneIndex].steps[
-            this.currentStep
-          ] || {
-            notes: [],
-            velocity: 0.7,
-          };
-          if (!currentStep.notes.includes(note)) {
-            currentStep.notes.push(note);
-          }
-          currentStep.velocity = velocity / 127;
-          this.sequences[laneIndex].steps[this.currentStep] = currentStep;
+        const channel = status & 0xf;
+        const isNoteOn = (status & 0xf0) === 0x90;
+        const isNoteOff = (status & 0xf0) === 0x80;
+
+        if (isNoteOn && velocity > 0) {
+          this.handleNoteOn(laneIndex, note, velocity);
+        } else if (isNoteOff || (isNoteOn && velocity === 0)) {
+          this.handleNoteOff(laneIndex, note);
         }
+      }
+    },
+    handleNoteOn(laneIndex, note, velocity) {
+      const currentTime = performance.now();
+      this.noteOnTimes[`${laneIndex}-${note}`] = {
+        time: currentTime,
+        step: this.currentStep,
+      };
+
+      // Always create a new step object when a note is pressed
+      const newStep = {
+        notes: [note],
+        velocity: velocity / 127,
+        duration: 100, // Initial duration, will be updated on note off
+        isRecording: true,
+      };
+
+      // Overwrite the current step completely
+      this.sequences[laneIndex].steps[this.currentStep] = newStep;
+    },
+
+    handleNoteOff(laneIndex, note) {
+      const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
+      if (noteOnInfo) {
+        const { time: noteOnTime, step: noteOnStep } = noteOnInfo;
+        const duration = Math.round(performance.now() - noteOnTime);
+
+        // Update only the step where the note started
+        const step = this.sequences[laneIndex].steps[noteOnStep];
+        if (step && step.notes.includes(note)) {
+          step.duration = duration; // Set the full duration of the note
+        }
+
+        delete this.noteOnTimes[`${laneIndex}-${note}`];
       }
     },
     updateBpm() {

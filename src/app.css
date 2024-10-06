@@ -7,6 +7,7 @@
   --control-bg-alt: rgba(255, 255, 255, 0.3);
   --step-border: #4a4a4a;
   --top-controls-bg: #2a2a2a;
+  --border-radius: 5px;
 }
 
 body,
@@ -18,9 +19,10 @@ html {
 
 .top-controls {
   background-color: var(--top-controls-bg);
-  padding: 10px;
+  padding: 8px 10px;
   display: flex;
   justify-content: flex-start;
+  align-items: flex-start;
   gap: 15px;
   flex-wrap: wrap;
 }
@@ -36,11 +38,11 @@ select {
   background-color: var(--control-bg);
   color: var(--text-color);
   border: none;
-  padding: 8px 12px;
+  padding: 5px 12px;
   font-size: 16px;
   cursor: pointer;
   transition: colors 200ms;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
 }
 
 .chord-editor button,
@@ -62,10 +64,8 @@ input[type="number"] {
   background-color: var(--control-bg);
   color: var(--text-color);
   border: none;
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 5px;
-  width: 80px;
+  padding: 6px 12px;
+  border-radius: var(--border-radius);
 }
 
 .lane {
@@ -95,7 +95,7 @@ input[type="number"] {
   border: 2px solid var(--step-border);
   cursor: pointer;
   transition: colors 200ms;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -130,7 +130,7 @@ input[type="number"] {
   border: 1px solid var(--control-bg-alt);
   padding: 10px;
   margin-top: 10px;
-  border-radius: 5px;
+  border-radius: var(--border-radius);
   z-index: 10;
 }
 

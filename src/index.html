@@ -37,13 +37,15 @@
       <button x-on:click="toggleRecord()" :class="{ active: isRecording }">
         <span x-text="isRecording ? 'Stop Recording' : 'Record'"></span>
       </button>
-      <input
-        type="number"
-        x-model="bpm"
-        min="1"
-        max="300"
-        @change="updateBpm"
-      />
+      <div class="mx-auto">
+        <input
+          type="number"
+          x-model="bpm"
+          min="1"
+          max="300"
+          @change="updateBpm"
+        />
+      </div>
       <button x-on:click="addLane()">Add Lane</button>
       <button x-on:click="clearAll()">Clear All</button>
     </nav>
