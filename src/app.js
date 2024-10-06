@@ -1,6 +1,7 @@
 import { getNoteNameFromMidiNumber } from "@/utils.js";
 import * as Tone from "tone";
 
+const PERSIST_KEY = "sequencer_data";
 
 const synth = new Tone.Synth().toDestination();
 
@@ -30,6 +31,8 @@ export default () => {
     noteOnTimes: {}, // To store the start time of each note for duration calculation
     async init() {
       await this.initMidi();
+      // this.loadPersistedData();
+      // this.setupWatchers();
       this.startUpdateLoop();
     },
     async initMidi() {
@@ -52,12 +55,59 @@ export default () => {
           };
         });
 
+        // Initialize midiOutputSelections with empty strings
+        this.midiOutputSelections = this.sequences.map(() => "");
+
         this.midiStatus = "MIDI initialized successfully";
       } catch (err) {
         console.error("Could not access MIDI devices:", err);
         this.midiStatus = "Failed to initialize MIDI";
       }
     },
+
+    loadPersistedData() {
+      try {
+        const loaded = JSON.parse(localStorage.getItem(PERSIST_KEY) || "{}");
+        this.sequences = loaded.sequences || this.sequences;
+        this.midiInputSelections = loaded.midiInputSelections || this.midiInputSelections;
+        this.midiOutputSelections = loaded.midiOutputSelections || this.midiOutputSelections;
+
+        this.bpm = loaded.bpm || this.bpm;
+
+        // Reconnect MIDI inputs and outputs
+        this.midiInputSelections.forEach((inputId, index) => {
+          if (inputId) {
+            const input = this.midiInputs.find((i) => i.id === inputId);
+            if (input) {
+              // this.updateMidiInput(index);
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Could not load persisted data:", err);
+      }
+    },
+
+    setupWatchers() {
+      this.$watch("sequences", () => this.persistData(), { deep: true });
+      this.$watch("midiInputSelections", () => this.persistData());
+      this.$watch("midiOutputSelections", () => this.persistData());
+      this.$watch("bpm", () => this.persistData());
+    },
+
+    persistData() {
+      const data = {
+        sequences: this.sequences,
+        midiInputSelections: this.midiInputSelections,
+        midiOutputSelections: this.midiOutputSelections,
+        bpm: this.bpm,
+      };
+
+      localStorage.setItem(PERSIST_KEY, JSON.stringify(data));
+
+      console.log("Data persisted", data);
+    },
+
     startUpdateLoop() {
       const update = () => {
         if (this.isPlaying) {
@@ -171,12 +221,12 @@ export default () => {
         // Regular MIDI output
         const output = this.midiOutputs.find((output) => output.id === outputId);
         if (output) {
-        const channel = this.sequences[laneIndex].midiChannel - 1;
-        output.send([0x90 + channel, note, Math.round(velocity * 127)]); // Note On
-        setTimeout(() => {
-          output.send([0x80 + channel, note, 0]); // Note Off
-        }, duration);
-      }
+          const channel = this.sequences[laneIndex].midiChannel - 1;
+          output.send([0x90 + channel, note, Math.round(velocity * 127)]); // Note On
+          setTimeout(() => {
+            output.send([0x80 + channel, note, 0]); // Note Off
+          }, duration);
+        }
       }
     },
 
@@ -272,11 +322,11 @@ export default () => {
             // Regular MIDI output
             const output = this.midiOutputs.find((output) => output.id === outputId);
             if (output) {
-          const channel = lane.midiChannel - 1;
-          for (let note = 0; note < 128; note++) {
-            output.send([0x80 + channel, note, 0]); // Note Off
-          }
-        }
+              const channel = lane.midiChannel - 1;
+              for (let note = 0; note < 128; note++) {
+                output.send([0x80 + channel, note, 0]); // Note Off
+              }
+            }
           }
         }
       });
