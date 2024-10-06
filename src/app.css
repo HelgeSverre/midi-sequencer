@@ -13,7 +13,7 @@ body,
 html {
   background-color: var(--bg-color);
   color: var(--text-color);
-  overflow: hidden;
+  overscroll-behavior-y: contain;
 }
 
 .top-controls {

@@ -19,10 +19,7 @@ export default () => {
     midiOutputSelections: [""],
     midiStatus: "MIDI not initialized",
     chordEditorOpen: false,
-    chordEditorPosition: {
-      x: 0,
-      y: 0,
-    },
+    chordEditorPosition: { x: 0, y: 0 },
     editingLaneIndex: null,
     editingStepIndex: null,
     editingStep: {

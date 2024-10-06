@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark flex h-screen w-full">
+<html lang="en" class="dark flex h-full w-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,123 +11,116 @@
     />
     <script type="module" src="./main.js" defer></script>
   </head>
-  <body x-data="app" class="w-full antialiased">
-    <main>
-      <div class="top-controls">
-        <button x-on:click="togglePlay()" :class="{ active: isPlaying }">
-          <span x-text="isPlaying ? 'Pause' : 'Play'"></span>
-        </button>
-        <button x-on:click="stop()">Stop</button>
-        <button x-on:click="toggleRecord()" :class="{ active: isRecording }">
-          <span x-text="isRecording ? 'Stop Recording' : 'Record'"></span>
-        </button>
-        <input
-          type="number"
-          x-model="bpm"
-          min="1"
-          max="300"
-          @change="updateBpm"
-        />
-        <button x-on:click="addLane()">Add Lane</button>
-        <button x-on:click="clearAll()">Clear All</button>
-      </div>
-      <div class="sequencer">
-        <template x-for="(lane, laneIndex) in sequences" :key="laneIndex">
-          <div class="lane">
-            <div class="lane-controls">
-              <select
-                x-model="midiInputSelections[laneIndex]"
-                @change="updateMidiInput(laneIndex)"
-              >
-                <option value="">No Input</option>
-                <template x-for="(input, index) in midiInputs" :key="index">
-                  <option :value="index" x-text="input.name"></option>
-                </template>
-              </select>
-              <select
-                x-model="midiOutputSelections[laneIndex]"
-                @change="updateMidiOutput(laneIndex)"
-              >
-                <option value="">No Output</option>
-                <template x-for="(output, index) in midiOutputs" :key="index">
-                  <option :value="index" x-text="output.name"></option>
-                </template>
-              </select>
-              <select
-                x-model="lane.midiChannel"
-                @change="updateMidiChannel(laneIndex)"
-              >
-                <template x-for="channel in 16" :key="channel">
-                  <option
-                    :value="channel"
-                    x-text="`Channel ${channel}`"
-                  ></option>
-                </template>
-              </select>
-            </div>
-            <div class="steps">
-              <template
-                x-for="(step, stepIndex) in lane.steps"
-                :key="stepIndex"
-              >
-                <div
-                  class="step"
-                  :class="{
+  <body x-data="app" class="flex h-full w-full flex-col antialiased">
+    <nav class="top-controls">
+      <button x-on:click="togglePlay()" :class="{ active: isPlaying }">
+        <span x-text="isPlaying ? 'Pause' : 'Play'"></span>
+      </button>
+      <button x-on:click="stop()">Stop</button>
+      <button x-on:click="toggleRecord()" :class="{ active: isRecording }">
+        <span x-text="isRecording ? 'Stop Recording' : 'Record'"></span>
+      </button>
+      <input
+        type="number"
+        x-model="bpm"
+        min="1"
+        max="300"
+        @change="updateBpm"
+      />
+      <button x-on:click="addLane()">Add Lane</button>
+      <button x-on:click="clearAll()">Clear All</button>
+    </nav>
+
+    <main class="sequencer">
+      <template x-for="(lane, laneIndex) in sequences" :key="laneIndex">
+        <div class="lane">
+          <div class="lane-controls">
+            <select
+              x-model="midiInputSelections[laneIndex]"
+              @change="updateMidiInput(laneIndex)"
+            >
+              <option value="">No Input</option>
+              <template x-for="(input, index) in midiInputs" :key="index">
+                <option :value="index" x-text="input.name"></option>
+              </template>
+            </select>
+            <select
+              x-model="midiOutputSelections[laneIndex]"
+              @change="updateMidiOutput(laneIndex)"
+            >
+              <option value="">No Output</option>
+              <template x-for="(output, index) in midiOutputs" :key="index">
+                <option :value="index" x-text="output.name"></option>
+              </template>
+            </select>
+            <select
+              x-model="lane.midiChannel"
+              @change="updateMidiChannel(laneIndex)"
+            >
+              <template x-for="channel in 16" :key="channel">
+                <option :value="channel" x-text="`Channel ${channel}`"></option>
+              </template>
+            </select>
+          </div>
+          <div class="steps">
+            <template x-for="(step, stepIndex) in lane.steps" :key="stepIndex">
+              <div
+                class="step"
+                :class="{
                         'active': step !== null,
                         'current': stepIndex === currentStep
                     }"
-                  x-on:click="openChordEditor(laneIndex, stepIndex)"
-                >
-                  <div
-                    x-show="step !== null"
-                    class="step-velocity"
-                    :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
-                  ></div>
-                  <span x-text="getStepDisplay(step)" class="step-note"></span>
-                </div>
-              </template>
-            </div>
-            <button x-on:click="clearLane(laneIndex)">Clear</button>
-            <button x-on:click="cloneLane(laneIndex)">Clone</button>
-            <button x-on:click="removeLane(laneIndex)">Remove</button>
+                x-on:click="openChordEditor(laneIndex, stepIndex)"
+              >
+                <div
+                  x-show="step !== null"
+                  class="step-velocity"
+                  :style="{ height: (step ? step.velocity * 100 : 0) + '%' }"
+                ></div>
+                <span x-text="getStepDisplay(step)" class="step-note"></span>
+              </div>
+            </template>
           </div>
+          <button x-on:click="clearLane(laneIndex)">Clear</button>
+          <button x-on:click="cloneLane(laneIndex)">Clone</button>
+          <button x-on:click="removeLane(laneIndex)">Remove</button>
+        </div>
+      </template>
+    </main>
+
+    <!-- Chord Editor -->
+    <div
+      x-on:click.away="closeChordEditor"
+      x-trap="chordEditorOpen"
+      x-show="chordEditorOpen"
+      class="chord-editor"
+      :style="{ top: chordEditorPosition.y + 'px', left: chordEditorPosition.x + 'px' }"
+    >
+      <h3 class="sr-only">Edit Chord/Notes</h3>
+      <div class="mb-2">
+        <template
+          x-for="note in [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]"
+        >
+          <button
+            class="chord-note"
+            :class="{ 'active': isNoteInChord(note) }"
+            x-text="$noteFromMidi(note)"
+            x-on:click="toggleNoteInChord(note)"
+          ></button>
         </template>
       </div>
-
-      <!-- Chord Editor -->
-      <div
-        x-on:click.away="closeChordEditor"
-        x-trap="chordEditorOpen"
-        x-show="chordEditorOpen"
-        class="chord-editor"
-        :style="{ top: chordEditorPosition.y + 'px', left: chordEditorPosition.x + 'px' }"
-      >
-        <h3 class="sr-only">Edit Chord/Notes</h3>
-        <div class="mb-2">
-          <template
-            x-for="note in [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]"
-          >
-            <button
-              class="chord-note"
-              :class="{ 'active': isNoteInChord(note) }"
-              x-text="$noteFromMidi(note)"
-              x-on:click="toggleNoteInChord(note)"
-            ></button>
-          </template>
-        </div>
-        <label>
-          Velocity:
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            x-model="editingStep.velocity"
-          />
-        </label>
-        <button x-on:click="saveChord">Save</button>
-        <button x-on:click="closeChordEditor">Cancel</button>
-      </div>
-    </main>
+      <label>
+        Velocity:
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          x-model="editingStep.velocity"
+        />
+      </label>
+      <button x-on:click="saveChord">Save</button>
+      <button x-on:click="closeChordEditor">Cancel</button>
+    </div>
   </body>
 </html>
