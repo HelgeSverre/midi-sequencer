@@ -371,6 +371,12 @@ export default () => {
     },
 
     handleMidiMessage(message, laneIndex) {
+      console.log("handleMidiMessage", {
+        data: message.data.map((d) => parseInt(d).toString(16)).join(" "),
+        laneIndex,
+        isRecording: this.isRecording,
+      });
+
       if (this.isRecording) {
         const [status, note, velocity] = message.data;
         const channel = status & 0xf;
@@ -378,14 +384,19 @@ export default () => {
         const isNoteOff = (status & 0xf0) === 0x80;
 
         if (isNoteOn && velocity > 0) {
-          this.handleNoteOn(laneIndex, note, velocity);
+          this.handleNoteOn(laneIndex, note, velocity, channel);
         } else if (isNoteOff || (isNoteOn && velocity === 0)) {
-          this.handleNoteOff(laneIndex, note);
+          this.handleNoteOff(laneIndex, note, channel);
         }
       }
     },
 
-    handleNoteOn(laneIndex, note, velocity) {
+    handleNoteOn(laneIndex, note, velocity, channel) {
+      // Only process if the channel matches the lane's MIDI channel
+      if (channel !== this.sequences[laneIndex].midiChannel - 1) {
+        return;
+      }
+
       const currentTime = performance.now();
       const currentStep = this.currentStep;
 
@@ -409,14 +420,19 @@ export default () => {
       }
 
       // Store the note-on time for duration calculation
-      this.noteOnTimes[`${laneIndex}-${note}`] = {
+      this.noteOnTimes[`${laneIndex}-${channel}-${note}`] = {
         time: currentTime,
         step: currentStep,
       };
     },
 
-    handleNoteOff(laneIndex, note) {
-      const noteOnInfo = this.noteOnTimes[`${laneIndex}-${note}`];
+    handleNoteOff(laneIndex, note, channel) {
+      // Only process if the channel matches the lane's MIDI channel
+      if (channel !== this.sequences[laneIndex].midiChannel - 1) {
+        return;
+      }
+
+      const noteOnInfo = this.noteOnTimes[`${laneIndex}-${channel}-${note}`];
       if (noteOnInfo) {
         const { time: noteOnTime, step: noteOnStep } = noteOnInfo;
         const duration = Math.round(performance.now() - noteOnTime);
@@ -428,12 +444,12 @@ export default () => {
           step.duration = Math.max(step.duration, duration);
         }
 
-        delete this.noteOnTimes[`${laneIndex}-${note}`];
+        delete this.noteOnTimes[`${laneIndex}-${channel}-${note}`];
 
         // If all notes in the chord are released, finalize the step
         if (
-          Object.keys(this.noteOnTimes).filter((key) => key.startsWith(`${laneIndex}-`)).length ===
-          0
+          Object.keys(this.noteOnTimes).filter((key) => key.startsWith(`${laneIndex}-${channel}-`))
+            .length === 0
         ) {
           step.isRecording = false;
         }
