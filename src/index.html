@@ -42,51 +42,58 @@
         <button
           @click="open = !open"
           type="button"
-          class="relative inline-flex items-center gap-1"
+          class="relative inline-flex items-center"
           id="options-menu"
           aria-haspopup="true"
           x-bind:aria-expanded="open"
         >
-          Options
           <svg
-            class="-mr-1 size-5"
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-settings-2"
           >
-            <path
-              fill-rule="evenodd"
-              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-              clip-rule="evenodd"
-            />
+            <path d="M20 7h-9" />
+            <path d="M14 17H5" />
+            <circle cx="17" cy="17" r="3" />
+            <circle cx="7" cy="7" r="3" />
           </svg>
         </button>
 
         <div
           x-show="open"
           @click.away="open = false"
-          class="absolute right-0 mt-2 w-56 origin-top-right rounded-md shadow-lg"
+          class="absolute right-0 mt-2 w-56 origin-top-right overflow-hidden rounded shadow-lg"
           role="menu"
           aria-orientation="vertical"
           aria-labelledby="options-menu"
         >
-          <div class="py-1" role="none">
+          <div role="none">
             <button
               x-on:click="clearAll()"
-              class="block w-full p-3 text-left text-sm"
+              class="block w-full rounded-none p-3 text-left text-sm"
               role="menuitem"
             >
               Clear All Notes
             </button>
             <button
               x-on:click="clearPersistedData()"
-              class="block w-full p-3 text-left text-sm"
+              class="block w-full rounded-none p-3 text-left text-sm"
               role="menuitem"
             >
               Clear local storage
             </button>
-            <button x-on:click="reset()" class="block w-full p-3 text-left text-sm" role="menuitem">
+            <button
+              x-on:click="reset()"
+              class="block w-full rounded-none p-3 text-left text-sm"
+              role="menuitem"
+            >
               Reset everything
             </button>
           </div>
